@@ -21,9 +21,9 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  DEBUG && console.log(`socket connected: ${socket.id}`);
+  DEBUG && console.log(`CONNECTED: ${socket.id}`);
 
-  socket.on("login", (username) => {
+  socket.on("login", (username, callback) => {
     let isInDict = false;
     for (let socketid in users) {
       let userdata = users[socketid];
@@ -33,7 +33,11 @@ io.on("connection", (socket) => {
           state: userdata["state"],
           lastAct: new Date(Date.now()),
         };
-        if (socket.id !== socketid) delete users[socketid];
+
+        if (socket.id !== socketid) {
+          delete users[socketid];
+        }
+
         isInDict = true;
         break;
       }
@@ -47,9 +51,33 @@ io.on("connection", (socket) => {
       };
     }
 
+    let roomCode = null;
+    if (users[socket.id].state != USER_STATES.MENU) {
+      for (let room in rooms) {
+        let roomdata = rooms[room];
+        let players = roomdata["players"];
+        let isInPlayers = false;
+        for (let i = 0; i < 3; i++) {
+          if (players[i] === username) {
+            roomCode = room;
+            isInPlayers = true;
+            break;
+          }
+        }
+
+        if (isInPlayers) break;
+      }
+    }
+
+    callback({
+      roomCode: roomCode,
+      userState: users[socket.id],
+      lobbyState: rooms[roomCode],
+    });
+
     DEBUG &&
       console.log(
-        `socket: ${socket.id} login, username: ${username}, in dict: ${isInDict}`
+        `LOGIN: ${socket.id}, username: ${username}, in dict: ${isInDict}`
       );
 
     DEBUG && console.log(`USERS DICT: ${JSON.stringify(users)}`);
@@ -65,33 +93,78 @@ io.on("connection", (socket) => {
     };
 
     socket.join(roomCode);
-    socket.emit("room-code", roomCode);
-
-    callback(roomCode);
+    users[socket.id] = {
+      ...users[socket.id],
+      state: USER_STATES.LOBBY,
+      lastAct: new Date(Date.now()),
+    };
+    callback({
+      roomCode: roomCode,
+      userState: users[socket.id],
+      lobbyState: rooms[roomCode],
+    });
 
     DEBUG && console.log(`socket: ${socket.id} created room: ${roomCode}`);
     DEBUG && console.log(`ROOMS DICT: ${JSON.stringify(rooms)}`);
   });
 
-  socket.on("cancel-room", (roomCode, username, callback) => {
+  socket.on("cancel-room", (roomCode, username) => {
     if (!(roomCode in rooms)) return;
     if (rooms[roomCode]["owner"] != username) return;
 
-    delete rooms[roomCode];
-    callback("ok");
+    users[socket.id] = {
+      ...users[socket.id],
+      state: USER_STATES.MENU,
+      lastAct: new Date(Date.now()),
+    };
 
-    console.log(`user with id: ${socket.id} canceled room: ${roomCode}`);
+    io.to(roomCode).emit("room-update", { lobbyState: null });
+
+    const players = rooms[roomCode]["players"];
+    for (let i = 0; i < players.length; i++) {
+      for (let userid in users) {
+        if (users[userid]["username"] === players[i]) {
+          users[userid] = { ...users[userid], state: USER_STATES.MENU };
+          io.to(userid).emit("user-update", {
+            roomCode: null,
+            userState: users[userid],
+          });
+          io.sockets.sockets.get(userid).leave(roomCode);
+          break;
+        }
+      }
+    }
+
+    delete rooms[roomCode];
+    console.log(`socket: ${socket.id} canceled room: ${roomCode}`);
   });
 
-  socket.on("join-room", (roomCode) => {
+  socket.on("join-room", (roomCode, username, callback) => {
     if (!(roomCode in rooms)) {
       DEBUG &&
         console.log(
           `socket: ${socket.id} tried to join non existing room: ${roomCode}`
         );
+      callback("404");
       return;
     }
     DEBUG && console.log(`socket: ${socket.id} joined room: ${roomCode}`);
+    rooms[roomCode]["players"] = [...rooms[roomCode]["players"], username];
+    console.log(JSON.stringify(rooms));
+
+    for (let userid in users) {
+      if (users[userid]["username"] === username) {
+        users[userid] = { ...users[userid], state: USER_STATES.LOBBY };
+      }
+    }
+
+    callback({
+      roomCode: roomCode,
+      userState: users[socket.id],
+      lobbyState: rooms[roomCode],
+    });
+
+    io.to(roomCode).emit("room-update", { lobbyState: rooms[roomCode] });
 
     socket.join(roomCode);
   });
@@ -106,7 +179,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", (data) => {
-    DEBUG && console.log(`socket disconnected: ${socket.id}`);
+    DEBUG && console.log(`DISCONNECTED: ${socket.id}`);
   });
 
   socket.on("hello", (data) => {
