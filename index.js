@@ -267,6 +267,20 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("room-update", { lobbyState: rooms[roomCode] });
   });
 
+  socket.on("public-rooms", (callback) => {
+    let publicRooms = [];
+
+    for (let room in rooms) {
+      if (rooms[room]["public"] === true) {
+        let publicRoom = rooms[room];
+        publicRoom = { ...publicRoom, roomCode: room };
+        publicRooms.push(publicRoom);
+      }
+    }
+
+    callback(publicRooms);
+  });
+
   socket.on("send-message", (messData, username, roomCode) => {
     DEBUG &&
       console.log(
