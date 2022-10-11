@@ -1,13 +1,25 @@
-const express = require("express");
+import fetch from "node-fetch";
+import express from "express";
+import http from "http";
+import cors from "cors";
+import { Server } from "socket.io";
+import { DEBUG, USER_STATES, ROOM_STATES, BACKEND_URL } from "./constants.js";
+import { generateCode, arrayRemove } from "./utils.js";
+
 const app = express();
-const http = require("http");
-const cors = require("cors");
-const { Server } = require("socket.io");
-
-const { generateCode } = require("./utils");
-const { DEBUG, USER_STATES, ROOM_STATES } = require("./constants");
-
 app.use(cors());
+
+let categories = [];
+const getCategories = async () => {
+  let response = await fetch(BACKEND_URL + "/api/categories/", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  categories = await response.json();
+};
+getCategories();
 
 const rooms = {};
 const users = {};
@@ -60,6 +72,7 @@ io.on("connection", (socket) => {
         for (let i = 0; i < 3; i++) {
           if (players[i] === username) {
             roomCode = room;
+            socket.join(roomCode);
             isInPlayers = true;
             break;
           }
@@ -87,9 +100,14 @@ io.on("connection", (socket) => {
     const roomCode = generateCode(4, rooms);
     rooms[roomCode] = {
       owner: username,
+      public: false,
       state: ROOM_STATES.MENU,
       created: new Date(Date.now()),
       players: [username],
+      blacklist: [],
+      categories: categories.map((cat) => {
+        return { id: cat.id, name: cat.name, active: true };
+      }),
     };
 
     socket.join(roomCode);
@@ -129,7 +147,8 @@ io.on("connection", (socket) => {
             roomCode: null,
             userState: users[userid],
           });
-          io.sockets.sockets.get(userid).leave(roomCode);
+          if (io.sockets.sockets.get(userid))
+            io.sockets.sockets.get(userid).leave(roomCode);
           break;
         }
       }
@@ -147,10 +166,25 @@ io.on("connection", (socket) => {
         );
       callback("404");
       return;
+    } else if (rooms[roomCode]["players"].length >= 3) {
+      DEBUG &&
+        console.log(
+          `socket: ${socket.id} tried to join full room: ${roomCode}`
+        );
+      callback("full");
+      return;
+    }
+
+    const blacklisted = rooms[roomCode]["blacklist"];
+    console.log("blacklist:" + JSON.stringify(blacklisted));
+    for (let i = 0; i < blacklisted.length; i++) {
+      if (blacklisted[i] === username) {
+        callback("banned");
+        return;
+      }
     }
     DEBUG && console.log(`socket: ${socket.id} joined room: ${roomCode}`);
     rooms[roomCode]["players"] = [...rooms[roomCode]["players"], username];
-    console.log(JSON.stringify(rooms));
 
     for (let userid in users) {
       if (users[userid]["username"] === username) {
@@ -169,13 +203,76 @@ io.on("connection", (socket) => {
     socket.join(roomCode);
   });
 
-  socket.on("leave-room", (data) => {
-    socket.console.log(`user with id: ${socket.id} leaved room: ${data}`);
+  socket.on("leave-room", (roomCode, username, callback) => {
+    DEBUG && console.log(`socket: ${socket.id} leaved room: ${roomCode}`);
+
+    socket.leave(roomCode);
+
+    rooms[roomCode]["players"] = arrayRemove(
+      rooms[roomCode]["players"],
+      username
+    );
+    io.to(roomCode).emit("room-update", { lobbyState: rooms[roomCode] });
+
+    for (let userid in users) {
+      if (users[userid]["username"] === username) {
+        users[userid] = { ...users[userid], state: USER_STATES.MENU };
+      }
+    }
+
+    callback({
+      roomCode: null,
+      userState: users[socket.id],
+      lobbyState: null,
+    });
   });
 
-  socket.on("send-message", (data) => {
-    console.log(data);
-    socket.to(data.room).emit("receive_message", data);
+  socket.on("update-room", (roomCode, username, lobbyState) => {
+    if (!(roomCode in rooms)) return;
+    if (rooms[roomCode]["owner"] != username) return;
+    DEBUG && console.log(`socket: ${socket.id} updated room: ${roomCode}`);
+
+    rooms[roomCode] = lobbyState;
+    io.to(roomCode).emit("room-update", { lobbyState: rooms[roomCode] });
+  });
+
+  socket.on("kick-room", (roomCode, username, kicked) => {
+    if (!(roomCode in rooms)) return;
+    if (rooms[roomCode]["owner"] != username) return;
+    DEBUG &&
+      console.log(
+        `socket: ${socket.id} ${username} kicked ${kicked} room: ${roomCode}`
+      );
+
+    for (let userid in users) {
+      if (users[userid]["username"] === kicked) {
+        users[userid] = { ...users[userid], state: USER_STATES.MENU };
+        io.to(userid).emit("user-update", {
+          roomCode: null,
+          userState: users[userid],
+        });
+        if (io.sockets.sockets.get(userid))
+          io.sockets.sockets.get(userid).leave(roomCode);
+        break;
+      }
+    }
+
+    rooms[roomCode]["players"] = arrayRemove(
+      rooms[roomCode]["players"],
+      kicked
+    );
+
+    rooms[roomCode]["blacklist"] = [...rooms[roomCode]["blacklist"], kicked];
+
+    io.to(roomCode).emit("room-update", { lobbyState: rooms[roomCode] });
+  });
+
+  socket.on("send-message", (messData, username, roomCode) => {
+    DEBUG &&
+      console.log(
+        `socket: ${socket.id} ${username} sent mess ${messData.message} to room ${roomCode}`
+      );
+    socket.to(roomCode).emit("receive-message", messData);
   });
 
   socket.on("disconnect", (data) => {

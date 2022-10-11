@@ -1,10 +1,4 @@
-module.exports = {
-  generateCode,
-};
-
-const { DEBUG } = require("./constants");
-
-function generateCode(len, rooms) {
+export const generateCode = (len, rooms) => {
   const characters = "123456789ABCDEFGHJKLMNPRSTUXYZ";
 
   let isUnique = false;
@@ -18,4 +12,10 @@ function generateCode(len, rooms) {
   }
 
   return code;
-}
+};
+
+export const arrayRemove = (arr, value) => {
+  return arr.filter(function (ele) {
+    return ele != value;
+  });
+};
