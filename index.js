@@ -24,6 +24,7 @@ getCategories();
 const connections = {};
 const users = {};
 const rooms = {};
+const games = {};
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -43,7 +44,7 @@ const UpdateUserLastActivity = (username) => {
 io.on("connection", (socket) => {
   DEBUG && console.log(`CONNECTED: ${socket.id}`);
 
-  socket.on("login", (username, email, callback) => {
+  socket.on("login", (username, useremail, callback) => {
     let isInUsers = username in users;
 
     if (isInUsers) {
@@ -65,7 +66,7 @@ io.on("connection", (socket) => {
     } else {
       users[username] = {
         username: username,
-        email: email,
+        email: useremail,
         state: USER_STATES.MENU,
         lastAct: new Date(Date.now()),
         roomCode: null,
@@ -82,7 +83,7 @@ io.on("connection", (socket) => {
 
     DEBUG &&
       console.log(
-        `LOGIN: ${socket.id}, username: ${username}, in dict users: ${isInUsers}`
+        `LOGIN: ${socket.id}, username: ${username}, useremail: ${useremail}, in dict users: ${isInUsers} `
       );
     DEBUG && console.log(`USERS DICT: ${JSON.stringify(users)}`);
     DEBUG && console.log(`CONNECTIONS DICT: ${JSON.stringify(connections)}`);
@@ -96,6 +97,7 @@ io.on("connection", (socket) => {
       state: ROOM_STATES.LOBBY,
       created: new Date(Date.now()),
       players: [username],
+      emails: [users[username].email],
       blacklist: [],
       categories: categories.map((cat) => {
         return { id: cat.id, name: cat.name, active: true };
@@ -109,11 +111,11 @@ io.on("connection", (socket) => {
       roomCode: roomCode,
     };
 
-    socket.join(users[username].roomCode);
+    socket.join(roomCode);
 
     callback({
       userState: users[username],
-      lobbyState: rooms[users[username].roomCode],
+      lobbyState: rooms[roomCode],
     });
 
     DEBUG && console.log(`socket: ${socket.id} created room: ${roomCode}`);
@@ -122,14 +124,15 @@ io.on("connection", (socket) => {
 
   socket.on("cancel-room", (username) => {
     if (!(users[username].roomCode in rooms)) return;
-    if (rooms[users[username].roomCode].owner != username) return;
+    const roomCode = users[username].roomCode;
+    if (rooms[roomCode].owner != username) return;
 
-    io.to(users[username].roomCode).emit("room-update", null);
+    io.to(roomCode).emit("room-update", null);
 
     UpdateUserLastActivity(username);
 
-    const roomPlayers = rooms[users[username].roomCode].players;
-    delete rooms[users[username].roomCode];
+    const roomPlayers = rooms[roomCode].players;
+    delete rooms[roomCode];
 
     roomPlayers.forEach((player) => {
       if (io.sockets.sockets.get(users[player].socket))
@@ -179,6 +182,7 @@ io.on("connection", (socket) => {
     }
 
     rooms[roomCode].players = [...rooms[roomCode].players, username];
+    rooms[roomCode].emails = [...rooms[roomCode].emails, users[username].email];
     users[username] = {
       ...users[username],
       state: USER_STATES.LOBBY,
@@ -205,13 +209,15 @@ io.on("connection", (socket) => {
         `socket: ${socket.id} leaved room: ${users[username].roomCode}`
       );
 
-    socket.leave(users[username].roomCode);
+    const roomCode = users[username].roomCode;
+    socket.leave(roomCode);
 
     rooms[roomCode].players = arrayRemove(rooms[roomCode].players, username);
-    io.to(users[username].roomCode).emit(
-      "room-update",
-      rooms[users[username].roomCode]
+    rooms[roomCode].emails = arrayRemove(
+      rooms[roomCode].emails,
+      users[username].email
     );
+    io.to(roomCode).emit("room-update", rooms[roomCode]);
 
     users[username] = {
       ...users[username],
@@ -228,37 +234,31 @@ io.on("connection", (socket) => {
 
   socket.on("update-room", (username, lobbyState) => {
     if (!(users[username].roomCode in rooms)) return;
-    if (rooms[users[username].roomCode].owner !== username) return;
-    DEBUG &&
-      console.log(
-        `socket: ${socket.id} updated room: ${users[username].roomCode}`
-      );
+    const roomCode = users[username].roomCode;
+    if (rooms[roomCode].owner !== username) return;
+    DEBUG && console.log(`socket: ${socket.id} updated room: ${roomCode}`);
 
     UpdateUserLastActivity(username);
 
-    rooms[users[username].roomCode] = lobbyState;
-    io.to(users[username].roomCode).emit(
-      "room-update",
-      rooms[users[username].roomCode]
-    );
+    rooms[roomCode] = lobbyState;
+    io.to(roomCode).emit("room-update", rooms[roomCode]);
   });
 
   socket.on("kick-room", (username, kicked) => {
-    if (!(users[username].roomCode in rooms)) return;
-    if (rooms[users[username].roomCode].owner != username) return;
+    if (!(roomCode in rooms)) return;
+    const roomCode = users[username].roomCode;
+    if (rooms[roomCode].owner != username) return;
     DEBUG &&
       console.log(
-        `socket: ${socket.id} ${username} kicked ${kicked} room: ${users[username].roomCode}`
+        `socket: ${socket.id} ${username} kicked ${kicked} room: ${roomCode}`
       );
 
-    rooms[users[username].roomCode].players = arrayRemove(
-      rooms[users[username].roomCode].players,
-      kicked
+    rooms[roomCode].players = arrayRemove(rooms[roomCode].players, kicked);
+    rooms[roomCode].emails = arrayRemove(
+      rooms[roomCode].emails,
+      users[kicked].email
     );
-    rooms[users[username].roomCode].blacklist = [
-      ...rooms[users[username].roomCode].blacklist,
-      kicked,
-    ];
+    rooms[roomCode].blacklist = [...rooms[roomCode].blacklist, kicked];
 
     if (io.sockets.sockets.get(users[kicked].socket))
       io.sockets.sockets
@@ -297,6 +297,38 @@ io.on("connection", (socket) => {
     }
 
     callback(publicRooms);
+  });
+
+  const getQuestions = async (roomCode) => {
+    let response = await fetch(BACKEND_URL + "/api/categories/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: rooms[roomCode].categories,
+    });
+    data = await response.json();
+    rooms[roomCode].questions = data;
+    const roomPlayers = rooms[roomCode].players;
+    roomPlayers.forEach((player) => {
+      users[player] = {
+        ...users[player],
+        state: USER_STATES.GAME,
+      };
+      io.to(users[player].socket).emit("user-update", users[player]);
+    });
+    io.to(roomCode).emit("game-update", rooms[roomCode]);
+
+    DEBUG && console.log(`start game: ${roomCode}`);
+  };
+
+  socket.on("start-game", (username) => {
+    if (!(username in users)) return;
+    const roomCode = users[username].roomCode;
+    if (rooms[roomCode].owner !== username) return;
+    if (rooms[roomCode].state !== ROOM_STATES.LOBBY) return;
+    rooms[roomCode] = { ...rooms[roomCode], state: ROOM_STATES.GAME };
+    getQuestions(roomCode);
   });
 
   socket.on("send-message", (messData, username) => {
