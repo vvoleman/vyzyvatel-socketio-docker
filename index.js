@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import express from "express";
+import express, { json } from "express";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
@@ -25,6 +25,7 @@ const connections = {};
 const users = {};
 const rooms = {};
 const games = {};
+const questionSets = {};
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -245,8 +246,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("kick-room", (username, kicked) => {
-    if (!(roomCode in rooms)) return;
+    if (!(users[username].roomCode in rooms)) return;
     const roomCode = users[username].roomCode;
+    if (!(roomCode in rooms)) return;
     if (rooms[roomCode].owner != username) return;
     DEBUG &&
       console.log(
@@ -300,14 +302,26 @@ io.on("connection", (socket) => {
   });
 
   const getQuestions = async (roomCode) => {
-    let response = await fetch(BACKEND_URL + "/api/categories/", {
+    let ids = [];
+    rooms[roomCode].categories.forEach((cat) => {
+      if (cat.active === true) {
+        ids.push(cat.id);
+      }
+    });
+
+    let response = await fetch(BACKEND_URL + "/api/questions/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: rooms[roomCode].categories,
+      body: JSON.stringify({ categories: ids }),
     });
-    data = await response.json();
+    let data = await response.json();
+
+    console.log("pickQuestions: " + JSON.stringify(data.pickQuestions));
+    console.log("-----------");
+    console.log("numericQuestions: " + JSON.stringify(data.numericQuestions));
+    return;
     rooms[roomCode].questions = data;
     const roomPlayers = rooms[roomCode].players;
     roomPlayers.forEach((player) => {
