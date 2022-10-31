@@ -3,8 +3,14 @@ import express, { json } from "express";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
-import { DEBUG, USER_STATES, ROOM_STATES, BACKEND_URL } from "./constants.js";
-import { generateCode, arrayRemove } from "./utils.js";
+import {
+  DEBUG,
+  USER_STATES,
+  ROOM_STATES,
+  QUESTION_TYPES,
+  BACKEND_URL,
+} from "./constants.js";
+import { generateCode, arrayRemove, shuffleArray } from "./utils.js";
 
 const app = express();
 app.use(cors());
@@ -24,7 +30,6 @@ getCategories();
 const connections = {};
 const users = {};
 const rooms = {};
-const games = {};
 const questionSets = {};
 
 const server = http.createServer(app);
@@ -78,8 +83,11 @@ io.on("connection", (socket) => {
     connections[socket.id] = username;
 
     callback({
-      userState: users[username],
-      lobbyState: rooms[users[username].roomCode],
+      userInfo: users[username],
+      roomInfo:
+        users[username].roomCode === null
+          ? null
+          : rooms[users[username].roomCode],
     });
 
     DEBUG &&
@@ -115,8 +123,8 @@ io.on("connection", (socket) => {
     socket.join(roomCode);
 
     callback({
-      userState: users[username],
-      lobbyState: rooms[roomCode],
+      userInfo: users[username],
+      roomInfo: rooms[roomCode],
     });
 
     DEBUG && console.log(`socket: ${socket.id} created room: ${roomCode}`);
@@ -191,8 +199,8 @@ io.on("connection", (socket) => {
     };
 
     callback({
-      userState: users[username],
-      lobbyState: rooms[roomCode],
+      userInfo: users[username],
+      roomInfo: rooms[roomCode],
     });
 
     io.to(roomCode).emit("room-update", rooms[roomCode]);
@@ -228,12 +236,12 @@ io.on("connection", (socket) => {
     };
 
     callback({
-      userState: users[username],
-      lobbyState: null,
+      userInfo: users[username],
+      roomInfo: null,
     });
   });
 
-  socket.on("update-room", (username, lobbyState) => {
+  socket.on("update-room", (username, roomInfo) => {
     if (!(users[username].roomCode in rooms)) return;
     const roomCode = users[username].roomCode;
     if (rooms[roomCode].owner !== username) return;
@@ -241,7 +249,7 @@ io.on("connection", (socket) => {
 
     UpdateUserLastActivity(username);
 
-    rooms[roomCode] = lobbyState;
+    rooms[roomCode] = roomInfo;
     io.to(roomCode).emit("room-update", rooms[roomCode]);
   });
 
@@ -316,22 +324,31 @@ io.on("connection", (socket) => {
       },
       body: JSON.stringify({ categories: ids }),
     });
-    let data = await response.json();
+    let questions = await response.json();
+    questionSets[roomCode] = questions;
+    let currentQuestion = questionSets[roomCode].pickQuestions.pop();
+    currentQuestion.wrong_answers.push(currentQuestion.right_answer);
+    currentQuestion = {
+      id: currentQuestion.id,
+      question: currentQuestion.question,
+      possibleAnswers: shuffleArray(currentQuestion.wrong_answers),
+      type: QUESTION_TYPES.PICK,
+    };
 
-    console.log("pickQuestions: " + JSON.stringify(data.pickQuestions));
-    console.log("-----------");
-    console.log("numericQuestions: " + JSON.stringify(data.numericQuestions));
-    return;
-    rooms[roomCode].questions = data;
-    const roomPlayers = rooms[roomCode].players;
-    roomPlayers.forEach((player) => {
+    delete rooms[roomCode].categories;
+    delete rooms[roomCode].blacklist;
+    delete rooms[roomCode].public;
+
+    rooms[roomCode].currentQuestion = currentQuestion;
+
+    rooms[roomCode].players.forEach((player) => {
       users[player] = {
         ...users[player],
         state: USER_STATES.GAME,
       };
       io.to(users[player].socket).emit("user-update", users[player]);
     });
-    io.to(roomCode).emit("game-update", rooms[roomCode]);
+    io.to(roomCode).emit("room-update", rooms[roomCode]);
 
     DEBUG && console.log(`start game: ${roomCode}`);
   };
@@ -341,7 +358,11 @@ io.on("connection", (socket) => {
     const roomCode = users[username].roomCode;
     if (rooms[roomCode].owner !== username) return;
     if (rooms[roomCode].state !== ROOM_STATES.LOBBY) return;
-    rooms[roomCode] = { ...rooms[roomCode], state: ROOM_STATES.GAME };
+    rooms[roomCode] = {
+      ...rooms[roomCode],
+      state: ROOM_STATES.GAME,
+      started: new Date(Date.now()),
+    };
     getQuestions(roomCode);
   });
 

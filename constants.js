@@ -12,4 +12,9 @@ export const ROOM_STATES = {
   ENDED: "ended",
 };
 
+export const QUESTION_TYPES = {
+  PICK: "pick",
+  NUMERIC: "numeric",
+};
+
 export const BACKEND_URL = "http://127.0.0.1:8000";

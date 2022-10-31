@@ -14,6 +14,23 @@ export const generateCode = (len, rooms) => {
   return code;
 };
 
+export const shuffleArray = (array) => {
+  let currentIndex = array.length,
+    randomIndex;
+
+  while (currentIndex != 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+
+  return array;
+};
+
 export const arrayRemove = (arr, value) => {
   return arr.filter(function (ele) {
     return ele != value;
