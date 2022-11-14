@@ -1,3 +1,5 @@
+import { PLAYER_COLORS } from "./constants.js";
+
 export const generateCode = (len, rooms) => {
   const characters = "123456789ABCDEFGHJKLMNPRSTUXYZ";
 
@@ -14,7 +16,8 @@ export const generateCode = (len, rooms) => {
   return code;
 };
 
-export const shuffleArray = (array) => {
+export const shuffleArray = (refArray) => {
+  const array = [...refArray];
   let currentIndex = array.length,
     randomIndex;
 
@@ -27,7 +30,6 @@ export const shuffleArray = (array) => {
       array[currentIndex],
     ];
   }
-
   return array;
 };
 
@@ -35,4 +37,22 @@ export const arrayRemove = (arr, value) => {
   return arr.filter(function (ele) {
     return ele != value;
   });
+};
+
+export const pickPlayerColors = (players) => {
+  const pla = players; // [...players]
+  let i = 1;
+  while (pla.length < 3) {
+    let name = "tester" + i;
+    pla.push(name);
+    i++;
+  }
+  const shufflePlayers = shuffleArray(pla);
+  const dict = {};
+
+  dict[shufflePlayers[0]] = PLAYER_COLORS.RED;
+  dict[shufflePlayers[1]] = PLAYER_COLORS.GREEN;
+  dict[shufflePlayers[2]] = PLAYER_COLORS.BLUE;
+
+  return dict;
 };

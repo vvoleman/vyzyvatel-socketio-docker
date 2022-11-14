@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import express, { json } from "express";
+import express from "express";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
@@ -9,8 +9,16 @@ import {
   ROOM_STATES,
   QUESTION_TYPES,
   BACKEND_URL,
+  PLAYER_COLORS,
+  GAME_STATES,
 } from "./constants.js";
-import { generateCode, arrayRemove, shuffleArray } from "./utils.js";
+import {
+  generateCode,
+  arrayRemove,
+  shuffleArray,
+  pickPlayerColors,
+} from "./utils.js";
+import { defaultMapInfo } from "./defaults.js";
 
 const app = express();
 app.use(cors());
@@ -361,6 +369,9 @@ io.on("connection", (socket) => {
     rooms[roomCode] = {
       ...rooms[roomCode],
       state: ROOM_STATES.GAME,
+      gameState: GAME_STATES.WAIT,
+      map: defaultMapInfo(),
+      playersColor: pickPlayerColors(rooms[roomCode].players),
       started: new Date(Date.now()),
     };
     getQuestions(roomCode);
