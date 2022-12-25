@@ -13,16 +13,20 @@ export const ROOM_STATES = {
 };
 
 export const GAME_STATES = {
-  WAIT: "waiting",
-  PICK_REGION: "region pick",
+  PICK_REGION: "region pick", // who is picking, end time
   ATTACK_REGION: "region pick",
-  SHOW_ANSWERS: "showing answers",
-  CHOOSE_ANSWER: "choose answer",
+
+  ALL_RESULTS: "all_results", // player answers, winner, second winner
+  ALL_GUESS: "all_guess", // playerAnswers, start time, end time
+
+  ATTACK_GUESS: "attack_guess", // involvedPlayers, playerAnswers, start time, end time
+  ATTACK_RESULTS: "attack_results", // involvedPlayers, playerAnswers, start time, end time
 };
 
 export const QUESTION_TYPES = {
   PICK: "pick",
   NUMERIC: "numeric",
+  IMAGE: "image",
 };
 
 export const PLAYER_COLORS = {
@@ -32,3 +36,9 @@ export const PLAYER_COLORS = {
 };
 
 export const BACKEND_URL = "http://127.0.0.1:8000";
+
+export const GAME_TIMERS = {
+  START: 5 * 1000,
+  READY: 5 * 1000,
+  GUESS: 10 * 1000,
+};
