@@ -34,7 +34,7 @@ export const createRoom = (username, socket, callback) => {
     state: ROOM_STATES.LOBBY,
     created: new Date(Date.now()),
     players: [username],
-    emails: [users[username].email],
+    emails: { [username]: users[username].email },
     blacklist: [],
     categories: categories,
   };
@@ -107,7 +107,7 @@ export const joinRoom = (username, roomCode, callback, socket, io) => {
   if (isBanned) return;
 
   rooms[roomCode].players = [...rooms[roomCode].players, username];
-  rooms[roomCode].emails = [...rooms[roomCode].emails, users[username].email];
+  rooms[roomCode].emails[username] = users[username].email;
 
   users[username] = {
     ...users[username],
@@ -130,7 +130,9 @@ export const leaveRoom = (username, callback, socket, io) => {
   socket.leave(roomCode);
 
   arrayRemove(rooms[roomCode].players, username);
-  arrayRemove(rooms[roomCode].emails, users[username].email);
+
+  delete rooms[roomCode].emails.username;
+
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   users[username] = {
@@ -166,7 +168,9 @@ export const kickUserFromRoom = (username, kicked, io) => {
   if (rooms[roomCode].owner != username) return;
 
   arrayRemove(rooms[roomCode].players, kicked);
-  arrayRemove(rooms[roomCode].emails, users[kicked].email);
+
+  delete rooms[roomCode].emails.kicked;
+
   rooms[roomCode].blacklist = [...rooms[roomCode].blacklist, kicked];
 
   if (io.sockets.sockets.get(users[kicked].socket))

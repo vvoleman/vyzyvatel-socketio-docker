@@ -29,3 +29,32 @@ export const arrayRemove = (arr, value) => {
 export const debugLog = (message) => {
   if (DEBUG) console.log(message);
 };
+
+export const deepCopyDict = (obj) => {
+  if (obj === null || typeof obj !== "object") {
+    return obj;
+  }
+
+  let copy;
+  if (Array.isArray(obj)) {
+    copy = [];
+    for (let i = 0; i < obj.length; i++) {
+      copy[i] = deepCopyDict(obj[i]);
+    }
+  } else {
+    copy = {};
+    for (const key in obj) {
+      copy[key] = deepCopyDict(obj[key]);
+    }
+  }
+
+  return copy;
+};
+
+export const waitSeconds = async (seconds) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, seconds * 1000);
+  });
+};

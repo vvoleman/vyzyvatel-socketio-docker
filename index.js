@@ -15,7 +15,7 @@ import {
 import { rooms, users, categories } from "./src/globals.js";
 import { getCategories } from "./src/getRequests.js";
 import { updateUserOnLogin } from "./src/utils/usersUtils.js";
-import { startGame } from "./src/utils/gameUtils.js";
+import { startGame, answerQuestion } from "./src/utils/gameUtils.js";
 
 const app = express();
 app.use(cors());
@@ -78,8 +78,9 @@ io.on("connection", (socket) => {
     startGame(username);
   });
 
-  socket.on("answer-game", (username, answer) => {
-    debugLog(`${username} started game ${users[username].roomCode}`);
+  socket.on("answer-question", (username, answer) => {
+    debugLog(`${username} answered ${answer} in ${users[username].roomCode}`);
+    answerQuestion(username, answer);
   });
 
   socket.on("send-message", (messData, username) => {
