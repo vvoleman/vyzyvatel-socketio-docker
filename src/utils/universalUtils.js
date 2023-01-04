@@ -51,10 +51,10 @@ export const deepCopyDict = (obj) => {
   return copy;
 };
 
-export const waitSeconds = async (seconds) => {
+export const waitMiliseconds = async (miliseconds) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve();
-    }, seconds * 1000);
+    }, miliseconds);
   });
 };

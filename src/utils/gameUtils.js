@@ -5,10 +5,16 @@ import {
   GAME_STATES,
   PLAYER_COLORS,
   GAME_TIMERS,
+  GAME_REGION_NEIGHBORS,
+  NUMBER_OF_REGIONS,
 } from "../constants.js";
 import { users, rooms, questionSets } from "../globals.js";
 import { getQuestionSet } from "../getRequests.js";
-import { shuffleArray, deepCopyDict, waitSeconds } from "./universalUtils.js";
+import {
+  shuffleArray,
+  deepCopyDict,
+  waitMiliseconds,
+} from "./universalUtils.js";
 import { defaultMapInfo } from "../defaults.js";
 import { io } from "../../index.js";
 
@@ -124,6 +130,7 @@ export const startGame = async (username) => {
   rooms[roomCode] = {
     ...rooms[roomCode],
     state: ROOM_STATES.GAME,
+    gameState: GAME_STATES.START,
     map: defaultMapInfo(),
     playersColor: pickPlayerColors(rooms[roomCode].players),
     started: new Date(Date.now()),
@@ -142,6 +149,10 @@ export const startGame = async (username) => {
     io.to(users[player].socket).emit("user-update", users[player]);
   });
 
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
+
+  await waitMiliseconds(GAME_TIMERS.START);
+
   askQuestionAll(roomCode);
 };
 
@@ -155,8 +166,11 @@ const askQuestionAll = (roomCode) => {
     gameState: GAME_STATES.ALL_GUESS,
     currentQuestion: {
       ...rooms[roomCode].currentQuestion,
-      startTime: new Date().getTime() + GAME_TIMERS.READY,
-      endTime: new Date().getTime() + GAME_TIMERS.READY + GAME_TIMERS.GUESS,
+      startTime: new Date().getTime() + GAME_TIMERS.QUESTION_READY,
+      endTime:
+        new Date().getTime() +
+        GAME_TIMERS.QUESTION_READY +
+        GAME_TIMERS.QUESTION_GUESS,
       answers: [],
     },
   };
@@ -169,23 +183,34 @@ const askQuestionAll = (roomCode) => {
 
   setTimeout(() => {
     finishQuestionAll(roomCode);
-  }, GAME_TIMERS.READY + GAME_TIMERS.GUESS);
+  }, GAME_TIMERS.QUESTION_READY + GAME_TIMERS.QUESTION_GUESS);
 };
 
-export const answerQuestion = (username, answer) => {
+export const answerAllQuestion = (username, answer) => {
   const roomCode = users[username].roomCode;
+
+  if (rooms[roomCode].gameState !== GAME_STATES.ALL_GUESS) return;
+
   rooms[roomCode].currentQuestion.answers.push({
     username: username,
     answer: answer,
     time: new Date().getTime(),
   });
 
+  if (rooms[roomCode].currentQuestion.answers.length === 3) {
+    finishQuestionAll(roomCode);
+  }
+
   console.log(JSON.stringify(rooms[roomCode]));
 };
 
 const finishQuestionAll = async (roomCode) => {
+  if (rooms[roomCode].gameState !== GAME_STATES.ALL_GUESS) return;
+  rooms[roomCode].gameState = GAME_STATES.ALL_RESULTS;
+
   const answers = rooms[roomCode].currentQuestion.answers;
 
+  // fill players without answers
   if (answers.length < 3) {
     rooms[roomCode].players.forEach((player) => {
       if (isInAnswers(player, answers)) return;
@@ -203,20 +228,116 @@ const finishQuestionAll = async (roomCode) => {
       ans.answer - rooms[roomCode].currentQuestion.rightAnswer
     );
   });
-
   answers.sortByDifferenceTime();
+  answers.forEach((ans, idx) => {
+    ans.position = idx + 1;
+  });
+
+  rooms[roomCode].currentQuestion.answers = shuffleArray(answers);
 
   console.log("answers: ", rooms[roomCode].currentQuestion.answers);
   console.log("right answer: ", rooms[roomCode].currentQuestion.rightAnswer);
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitSeconds(5);
+  rooms[roomCode].pickRegionQueue = [
+    answers[0].username,
+    answers[0].username,
+    answers[1].username,
+  ];
 
-  await playerPickRegion(roomCode, answers[0].username);
-  await playerPickRegion(roomCode, answers[0].username);
+  await waitMiliseconds(GAME_TIMERS.QUESTION_RESULTS);
 
-  //await playerPickRegion(roomCode, answers[1].username);
+  tryPlayerPickRegion(roomCode);
 };
 
-const playerPickRegion = async (roomCode, username, numberOfPicks) => {};
+const tryPlayerPickRegion = async (roomCode) => {
+  if (rooms[roomCode].pickRegionQueue.length === 0) {
+    continueGame(roomCode);
+    return;
+  }
+
+  rooms[roomCode].gameState = GAME_STATES.PICK_REGION;
+
+  delete rooms[roomCode].currentQuestion;
+  rooms[roomCode].currentPick = {
+    username: rooms[roomCode].pickRegionQueue.shift(),
+    region: null,
+  };
+
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
+
+  setTimeout(() => {
+    finishPickRegion(roomCode);
+  }, GAME_TIMERS.PICK_REGION);
+};
+
+export const answerPlayerPickRegion = async (username, region) => {
+  const roomCode = users[username].roomCode;
+
+  if (rooms[roomCode].gameState !== GAME_STATES.PICK_REGION) return;
+  if (rooms[roomCode].currentPick.username !== username) return;
+
+  rooms[roomCode].currentPick.region = region;
+
+  finishPickRegion(roomCode);
+};
+
+const finishPickRegion = async (roomCode) => {
+  if (rooms[roomCode].gameState !== GAME_STATES.PICK_REGION) return;
+
+  console.log("finishPickRegion ", rooms[roomCode]);
+
+  let pickValid = false;
+
+  if (rooms[roomCode].currentPick.region) {
+    pickValid = isPlayerRegionNeighbor(
+      rooms[roomCode].currentPick.username,
+      rooms[roomCode].currentPick.region
+    );
+  }
+
+  if (pickValid) {
+    rooms[roomCode].map[rooms[roomCode].currentPick.region].owner =
+      rooms[roomCode].currentPick.username;
+  } else {
+    for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
+      if (rooms[roomCode].map[idx].owner !== null) continue;
+      if (!isPlayerRegionNeighbor(rooms[roomCode].currentPick.username, idx))
+        continue;
+
+      rooms[roomCode].map[idx].owner = rooms[roomCode].currentPick.username;
+      break;
+    }
+  }
+
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
+
+  delete rooms[roomCode].currentPick;
+
+  await waitMiliseconds(GAME_TIMERS.PICK_REGION_AFTER);
+
+  tryPlayerPickRegion(roomCode);
+};
+
+const isPlayerRegionNeighbor = (username, regionIdx) => {
+  const roomCode = users[username].roomCode;
+
+  const playerRegions = [];
+
+  for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
+    if (rooms[roomCode].map[idx].owner !== username) continue;
+    if (playerRegions.includes(idx)) continue;
+
+    playerRegions.push(idx);
+  }
+
+  return GAME_REGION_NEIGHBORS[regionIdx].some((regIdx) =>
+    playerRegions.includes(regIdx)
+  );
+};
+
+const continueGame = async (roomCode) => {
+  console.log("continueGame " + roomCode);
+  console.log(rooms[roomCode]);
+};
