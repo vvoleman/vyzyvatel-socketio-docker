@@ -2,7 +2,7 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
-import { debugLog } from "./src/utils/universalUtils.js";
+import { debugLog } from "./src/utils/utils.js";
 import {
   createRoom,
   cancelRoom,
@@ -11,11 +11,15 @@ import {
   updateRoom,
   kickUserFromRoom,
   getPublicRooms,
-} from "./src/utils/lobbyUtils.js";
+} from "./src/utils/lobby.js";
 import { rooms, users, categories } from "./src/globals.js";
 import { getCategories } from "./src/getRequests.js";
-import { updateUserOnLogin } from "./src/utils/usersUtils.js";
-import { startGame, answerAllQuestion } from "./src/utils/gameUtils.js";
+import { updateUserOnLogin } from "./src/utils/users.js";
+import {
+  startGame,
+  answerAllQuestion,
+  answerPlayerPickRegion,
+} from "./src/utils/game.js";
 
 const app = express();
 app.use(cors());
@@ -79,8 +83,17 @@ io.on("connection", (socket) => {
   });
 
   socket.on("answer-question", (username, answer) => {
-    debugLog(`${username} answered ${answer} in ${users[username].roomCode}`);
+    debugLog(
+      `${username} answered question ${answer} in ${users[username].roomCode}`
+    );
     answerAllQuestion(username, answer);
+  });
+
+  socket.on("answer-pick-region", (username, answer) => {
+    debugLog(
+      `${username} answered pick region (${answer}) in ${users[username].roomCode}`
+    );
+    answerPlayerPickRegion(username, answer);
   });
 
   socket.on("send-message", (messData, username) => {

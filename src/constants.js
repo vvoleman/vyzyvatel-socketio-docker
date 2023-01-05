@@ -15,8 +15,8 @@ export const ROOM_STATES = {
 export const GAME_STATES = {
   START: "starting",
 
-  PICK_REGION: "region_pick", // who is picking, end time
-  ATTACK_REGION: "region_pick",
+  PICK_REGION: "pick_region", // who is picking, end time
+  PICK_REGION_RESULTS: "pick_region_results", // who picked, region picked, end time
 
   ALL_GUESS: "all_guess", // playerAnswers, start time, end time
   ALL_RESULTS: "all_results", // player answers, winner, second winner
@@ -40,11 +40,11 @@ export const PLAYER_COLORS = {
 export const BACKEND_URL = "http://127.0.0.1:8000";
 
 export const GAME_TIMERS = {
-  START: 5 * 1000,
-  QUESTION_READY: 3.5 * 1000,
-  QUESTION_GUESS: 10 * 1000,
-  QUESTION_RESULTS: 7 * 1000,
-  PICK_REGION: 1 * 1000,
+  START: 1 * 1000, // 5
+  QUESTION_READY: 1 * 1000, // 3.5
+  QUESTION_GUESS: 2 * 1000, // 10
+  QUESTION_RESULTS: 2 * 1000, // 7
+  PICK_REGION: 10 * 1000,
   PICK_REGION_AFTER: 3 * 1000,
 };
 

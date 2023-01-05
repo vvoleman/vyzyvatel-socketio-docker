@@ -10,11 +10,7 @@ import {
 } from "../constants.js";
 import { users, rooms, questionSets } from "../globals.js";
 import { getQuestionSet } from "../getRequests.js";
-import {
-  shuffleArray,
-  deepCopyDict,
-  waitMiliseconds,
-} from "./universalUtils.js";
+import { shuffleArray, deepCopyDict, waitMiliseconds } from "./utils.js";
 import { defaultMapInfo } from "../defaults.js";
 import { io } from "../../index.js";
 
@@ -191,17 +187,25 @@ export const answerAllQuestion = (username, answer) => {
 
   if (rooms[roomCode].gameState !== GAME_STATES.ALL_GUESS) return;
 
+  let unique = true;
+
+  rooms[roomCode].currentQuestion.answers.forEach((answer) => {
+    if (answer.username === username) unique = false;
+  });
+
+  if (!unique) return;
+
   rooms[roomCode].currentQuestion.answers.push({
     username: username,
     answer: answer,
     time: new Date().getTime(),
   });
 
+  console.log("answerAllQuestion " + username);
+
   if (rooms[roomCode].currentQuestion.answers.length === 3) {
     finishQuestionAll(roomCode);
   }
-
-  console.log(JSON.stringify(rooms[roomCode]));
 };
 
 const finishQuestionAll = async (roomCode) => {
@@ -311,9 +315,10 @@ const finishPickRegion = async (roomCode) => {
     }
   }
 
-  io.to(roomCode).emit("room-update", rooms[roomCode]);
-
   delete rooms[roomCode].currentPick;
+  rooms[roomCode].gameState = GAME_STATES.PICK_REGION_RESULTS;
+
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   await waitMiliseconds(GAME_TIMERS.PICK_REGION_AFTER);
 
