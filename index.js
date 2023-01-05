@@ -2,7 +2,7 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
-import { debugLog } from "./src/utils/utils.js";
+import { debugLog } from "./src/utils/universalUtils.js";
 import {
   createRoom,
   cancelRoom,
@@ -11,15 +11,15 @@ import {
   updateRoom,
   kickUserFromRoom,
   getPublicRooms,
-} from "./src/utils/lobby.js";
+} from "./src/logic/lobby.js";
 import { rooms, users, categories } from "./src/globals.js";
 import { getCategories } from "./src/getRequests.js";
-import { updateUserOnLogin } from "./src/utils/users.js";
+import { updateUserOnLogin } from "./src/logic/users.js";
 import {
   startGame,
   answerAllQuestion,
   answerPlayerPickRegion,
-} from "./src/utils/game.js";
+} from "./src/logic/game.js";
 
 const app = express();
 app.use(cors());

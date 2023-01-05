@@ -7,7 +7,7 @@ import {
 } from "../globals.js";
 import { ROOM_STATES, USER_STATES } from "../constants.js";
 import { updateUserLastActivity } from "./users.js";
-import { arrayRemove, debugLog } from "./utils.js";
+import { arrayRemove, debugLog } from "../utils/universalUtils.js";
 
 const generateCode = (len) => {
   const characters = "123456789ABCDEFGHJKLMNPRSTUXYZ";
