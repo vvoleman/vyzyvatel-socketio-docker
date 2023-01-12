@@ -7,8 +7,31 @@ import {
 import { users, rooms, questionSets } from "../globals.js";
 import { shuffleArray } from "../utils/universalUtils.js";
 
+export const hasAnyAviableNeighbor = (username) => {
+  const roomCode = users[username].roomCode;
+
+  for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
+    if (
+      isPlayerRegionNeighbor(username, idx) &&
+      rooms[roomCode].map[idx].owner === null
+    )
+      return true;
+  }
+  return false;
+};
+
+export const numberOfAviableRegions = (roomCode) => {
+  let count = 0;
+  for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
+    if (rooms[roomCode].map[idx].owner === null) count++;
+  }
+  return count;
+};
+
 export const isPlayerRegionNeighbor = (username, regionIdx) => {
   const roomCode = users[username].roomCode;
+
+  if (roomCode === undefined) console.log("BOT ERROR roomCode is undefined");
 
   const playerRegions = [];
 
@@ -27,21 +50,21 @@ export const isPlayerRegionNeighbor = (username, regionIdx) => {
 export const pickPlayerColors = (players) => {
   let i = 1;
   while (players.length < 3) {
-    let name = "Tester_" + i;
+    let name = "testbot_" + i;
     players.push(name);
     i++;
   }
   const shuffledPlayers = shuffleArray(players);
   const playerColors = {};
 
-  playerColors[shuffledPlayers[0]] = PLAYER_COLORS.RED;
-  playerColors[shuffledPlayers[1]] = PLAYER_COLORS.GREEN;
-  playerColors[shuffledPlayers[2]] = PLAYER_COLORS.BLUE;
+  playerColors[shuffledPlayers[0]] = 0;
+  playerColors[shuffledPlayers[1]] = 1;
+  playerColors[shuffledPlayers[2]] = 2;
 
   return playerColors;
 };
 
-export const popQuestionFromSet = (roomCode, questionType) => {
+export const setCurrentQuestion = (roomCode, questionType) => {
   let currentQuestion = null;
 
   switch (questionType) {
@@ -49,6 +72,7 @@ export const popQuestionFromSet = (roomCode, questionType) => {
       currentQuestion = questionSets[roomCode].pickQuestions.pop();
       currentQuestion.wrong_answers.push(currentQuestion.right_answer);
       currentQuestion = {
+        id: currentQuestion.id,
         question: currentQuestion.question,
         possibleAnswers: shuffleArray(currentQuestion.wrong_answers),
         type: QUESTION_TYPES.PICK,
@@ -59,7 +83,13 @@ export const popQuestionFromSet = (roomCode, questionType) => {
 
     case QUESTION_TYPES.NUMERIC:
       currentQuestion = questionSets[roomCode].numericQuestions.pop();
+
+      console.log("numericQuestions", questionSets[roomCode].numericQuestions);
+      if (currentQuestion === null)
+        console.log("currentQuestionNumeric is null");
+
       currentQuestion = {
+        id: currentQuestion.id,
         question: currentQuestion.question,
         type: QUESTION_TYPES.NUMERIC,
 
@@ -71,6 +101,7 @@ export const popQuestionFromSet = (roomCode, questionType) => {
       currentQuestion = questionSets[roomCode].imageQuestions.pop();
       currentQuestion.wrong_answers.push(currentQuestion.right_answer);
       currentQuestion = {
+        id: currentQuestion.id,
         question: currentQuestion.question,
         image_url: currentQuestion.image_url,
         possibleAnswers: shuffleArray(currentQuestion.wrong_answers),

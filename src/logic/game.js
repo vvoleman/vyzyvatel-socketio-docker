@@ -5,6 +5,9 @@ import {
   GAME_STATES,
   GAME_TIMERS,
   NUMBER_OF_REGIONS,
+  NUMBER_OF_ROUNDS,
+  IMAGE_QUESTION_CHANCE,
+  GAME_STAGES,
 } from "../constants.js";
 import { users, rooms } from "../globals.js";
 import { getQuestionSet } from "../getRequests.js";
@@ -12,15 +15,20 @@ import {
   shuffleArray,
   deepCopyDict,
   waitMiliseconds,
+  getTrueOrFalseByChance,
 } from "../utils/universalUtils.js";
 import { defaultMapInfo } from "../defaults.js";
 import { io } from "../../index.js";
 import {
   isInAnswers,
   pickPlayerColors,
-  popQuestionFromSet,
+  setCurrentQuestion,
   isPlayerRegionNeighbor,
+  numberOfAviableRegions,
+  hasAnyAviableNeighbor,
 } from "../utils/gameUtils.js";
+
+var SPEED_RUN_MODE = 0.05;
 
 Array.prototype.sortByDifferenceTime = function (array) {
   this.sort((obj1, obj2) => {
@@ -60,9 +68,13 @@ export const startGame = async (username) => {
     ...rooms[roomCode],
     state: ROOM_STATES.GAME,
     gameState: GAME_STATES.START,
+    gameStage: GAME_STAGES.TAKE_REGIONS,
     map: defaultMapInfo(),
-    playersColor: pickPlayerColors(rooms[roomCode].players),
+    playerColors: pickPlayerColors(rooms[roomCode].players),
     started: new Date(Date.now()),
+    pickRegionHistory: [],
+    startTime: new Date().getTime(),
+    endTime: new Date().getTime() + GAME_TIMERS.START * SPEED_RUN_MODE,
   };
 
   const shuffledPlayers = shuffleArray(rooms[roomCode].players);
@@ -80,27 +92,106 @@ export const startGame = async (username) => {
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitMiliseconds(GAME_TIMERS.START);
+  await waitMiliseconds(GAME_TIMERS.START * SPEED_RUN_MODE);
 
-  askQuestionAll(roomCode);
+  setNextGameState(roomCode);
 };
 
-const askQuestionAll = (roomCode) => {
-  console.log("askQuestionAll " + roomCode);
+const setNextGameState = async (roomCode) => {
+  switch (rooms[roomCode].gameState) {
+    case GAME_STATES.START:
+      askQuestion(roomCode, rooms[roomCode].players, QUESTION_TYPES.NUMERIC);
+      return;
 
-  popQuestionFromSet(roomCode, QUESTION_TYPES.NUMERIC);
+    case GAME_STATES.QUESTION_RESULTS:
+      switch (rooms[roomCode].gameStage) {
+        case GAME_STAGES.TAKE_REGIONS:
+          rooms[roomCode].pickRegionQueue = [];
+
+          const aviableRegions = numberOfAviableRegions(roomCode);
+          const answers = rooms[roomCode].currentQuestion.answers;
+          console.log("answers", answers);
+
+          if (aviableRegions === 2) {
+            rooms[roomCode].pickRegionQueue.push(answers[0].username);
+            rooms[roomCode].pickRegionQueue.push(answers[1].username);
+          } else {
+            if (aviableRegions > 0) {
+              rooms[roomCode].pickRegionQueue.push(answers[0].username);
+            }
+            if (aviableRegions > 1) {
+              rooms[roomCode].pickRegionQueue.push(answers[0].username);
+            }
+            if (aviableRegions > 2) {
+              rooms[roomCode].pickRegionQueue.push(answers[1].username);
+            }
+          }
+
+          pickRegion(roomCode);
+          return;
+
+        case GAME_STAGES.BATTLE_REGIONS:
+          return;
+      }
+      return;
+
+    case GAME_STATES.REGION_RESULTS:
+      switch (rooms[roomCode].gameStage) {
+        case GAME_STAGES.TAKE_REGIONS:
+          if (rooms[roomCode].pickRegionQueue.length > 0) {
+            pickRegion(roomCode);
+            return;
+          }
+          if (numberOfAviableRegions(roomCode) > 0) {
+            askQuestion(
+              roomCode,
+              rooms[roomCode].players,
+              QUESTION_TYPES.NUMERIC
+            );
+            return;
+          }
+
+          allRegionsTaken(roomCode);
+          return;
+
+        case GAME_STAGES.BATTLE_REGIONS:
+          if (rooms[roomCode].currentAttack) {
+            askQuestion(
+              roomCode,
+              [
+                rooms[roomCode].currentAttack.attacker,
+                rooms[roomCode].currentAttack.defender,
+              ],
+              getTrueOrFalseByChance(IMAGE_QUESTION_CHANCE)
+                ? QUESTION_TYPES.IMAGE
+                : QUESTION_TYPES.PICK
+            );
+          }
+          if (rooms[roomCode].attackRegionQueue.length > 0) {
+            attackRegion(roomCode);
+            return;
+          }
+          return;
+      }
+  }
+};
+
+const askQuestion = (roomCode, involvedPlayers, questionType) => {
+  setCurrentQuestion(roomCode, questionType);
 
   rooms[roomCode] = {
     ...rooms[roomCode],
-    gameState: GAME_STATES.ALL_GUESS,
+    gameState: GAME_STATES.QUESTION_GUESS,
+    startTime:
+      new Date().getTime() + GAME_TIMERS.QUESTION_READY * SPEED_RUN_MODE,
+    endTime:
+      new Date().getTime() +
+      GAME_TIMERS.QUESTION_READY * SPEED_RUN_MODE +
+      GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE,
     currentQuestion: {
       ...rooms[roomCode].currentQuestion,
-      startTime: new Date().getTime() + GAME_TIMERS.QUESTION_READY,
-      endTime:
-        new Date().getTime() +
-        GAME_TIMERS.QUESTION_READY +
-        GAME_TIMERS.QUESTION_GUESS,
       answers: [],
+      involvedPlayers: involvedPlayers,
     },
   };
 
@@ -108,130 +199,164 @@ const askQuestionAll = (roomCode) => {
   delete clientRoomInfo.currentQuestion.rightAnswer;
   delete clientRoomInfo.currentQuestion.answers;
 
+  console.log(
+    "askQuestion " + roomCode,
+    involvedPlayers,
+    questionType,
+    rooms[roomCode]
+  );
+
   io.to(roomCode).emit("room-update", clientRoomInfo);
 
   setTimeout(() => {
-    finishQuestionAll(roomCode);
-  }, GAME_TIMERS.QUESTION_READY + GAME_TIMERS.QUESTION_GUESS);
+    finishQuestion(roomCode, rooms[roomCode].currentQuestion.id);
+  }, GAME_TIMERS.QUESTION_READY * SPEED_RUN_MODE + GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE + GAME_TIMERS.QUESTION_EVALUALTION * SPEED_RUN_MODE);
 };
 
-export const answerAllQuestion = (username, answer) => {
+export const answerQuestion = (username, answer, auto) => {
   const roomCode = users[username].roomCode;
 
-  if (rooms[roomCode].gameState !== GAME_STATES.ALL_GUESS) return;
+  if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
 
-  let unique = true;
-
-  rooms[roomCode].currentQuestion.answers.forEach((answer) => {
-    if (answer.username === username) unique = false;
-  });
-
-  if (!unique) return;
+  for (let i = 0; i < rooms[roomCode].currentQuestion.answers.length; i++) {
+    if (rooms[roomCode].currentQuestion.answers[i].username === username) {
+      return; // already answered
+    }
+  }
 
   rooms[roomCode].currentQuestion.answers.push({
     username: username,
     answer: answer,
-    time: new Date().getTime(),
+    time: auto
+      ? rooms[roomCode].endTime
+      : new Date().getTime() > rooms[roomCode].endTime
+      ? rooms[roomCode].endTime
+      : new Date().getTime(),
   });
 
-  console.log("answerAllQuestion " + username);
+  console.log("answerQuestion " + username);
 
-  if (rooms[roomCode].currentQuestion.answers.length === 3) {
-    finishQuestionAll(roomCode);
+  // all involvedPlayers answered
+  if (
+    rooms[roomCode].currentQuestion.answers.length ===
+    rooms[roomCode].currentQuestion.involvedPlayers.length
+  ) {
+    finishQuestion(roomCode, rooms[roomCode].currentQuestion.id);
   }
 };
 
-const finishQuestionAll = async (roomCode) => {
-  if (rooms[roomCode].gameState !== GAME_STATES.ALL_GUESS) return;
-  rooms[roomCode].gameState = GAME_STATES.ALL_RESULTS;
+const finishQuestion = async (roomCode, questionId) => {
+  if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
+  if (rooms[roomCode].currentQuestion.id !== questionId) return;
+
+  rooms[roomCode].gameState = GAME_STATES.QUESTION_RESULTS;
 
   const answers = rooms[roomCode].currentQuestion.answers;
 
-  // fill players without answers
-  if (answers.length < 3) {
+  // generate answer for players that did not answer
+  if (answers.length < rooms[roomCode].currentQuestion.involvedPlayers.length) {
     rooms[roomCode].players.forEach((player) => {
-      if (isInAnswers(player, answers)) return;
-
-      answers.push({
-        username: player,
-        answer: 0,
-        time: rooms[roomCode].currentQuestion.endTime,
-      });
+      if (!isInAnswers(player, answers)) {
+        switch (rooms[roomCode].currentQuestion.type) {
+          case QUESTION_TYPES.NUMERIC:
+            // temporary for testing
+            if (player.indexOf("testbot") !== -1) {
+              answers.push({
+                username: player,
+                answer: -9999,
+                time: rooms[roomCode].endTime,
+              });
+            } else {
+              answers.push({
+                username: player,
+                answer: 0,
+                time: rooms[roomCode].endTime,
+              });
+            }
+            break;
+        }
+      }
     });
   }
 
-  answers.forEach((ans) => {
-    ans.difference = Math.abs(
-      ans.answer - rooms[roomCode].currentQuestion.rightAnswer
-    );
-  });
-  answers.sortByDifferenceTime();
-  answers.forEach((ans, idx) => {
-    ans.position = idx + 1;
-  });
-
-  rooms[roomCode].currentQuestion.answers = shuffleArray(answers);
-
-  console.log("answers: ", rooms[roomCode].currentQuestion.answers);
-  console.log("right answer: ", rooms[roomCode].currentQuestion.rightAnswer);
+  switch (rooms[roomCode].currentQuestion.type) {
+    case QUESTION_TYPES.NUMERIC:
+      answers.forEach((ans) => {
+        ans.difference = Math.abs(
+          ans.answer - rooms[roomCode].currentQuestion.rightAnswer
+        );
+      });
+      answers.sortByDifferenceTime();
+      answers.forEach((ans, idx) => {
+        ans.position = idx + 1;
+      });
+      break;
+  }
+  console.log("finishQuestion", rooms[roomCode]);
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  rooms[roomCode].pickRegionQueue = [
-    answers[0].username,
-    answers[0].username,
-    answers[1].username,
-  ];
+  await waitMiliseconds(GAME_TIMERS.QUESTION_RESULTS * SPEED_RUN_MODE);
 
-  await waitMiliseconds(GAME_TIMERS.QUESTION_RESULTS);
-
-  tryPlayerPickRegion(roomCode);
+  setNextGameState(roomCode);
 };
 
-const tryPlayerPickRegion = async (roomCode) => {
-  if (rooms[roomCode].pickRegionQueue.length === 0) {
-    continueGame(roomCode);
-    return;
-  }
+const pickRegion = async (roomCode) => {
+  rooms[roomCode].gameState = GAME_STATES.REGION_PICK;
 
-  rooms[roomCode].gameState = GAME_STATES.PICK_REGION;
+  const username = rooms[roomCode].pickRegionQueue.shift();
+  const pickId = numberOfAviableRegions(roomCode);
 
   delete rooms[roomCode].currentQuestion;
+
+  rooms[roomCode].startTime = new Date().getTime();
+  rooms[roomCode].endTime =
+    new Date().getTime() + GAME_TIMERS.REGION_PICK * SPEED_RUN_MODE;
   rooms[roomCode].currentPick = {
-    username: rooms[roomCode].pickRegionQueue.shift(),
+    id: pickId,
+    username: username,
     region: null,
+    onlyNeighbors: hasAnyAviableNeighbor(username),
   };
+
+  console.log("pickRegion", rooms[roomCode]);
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   setTimeout(() => {
-    finishPickRegion(roomCode);
-  }, GAME_TIMERS.PICK_REGION);
+    finishPickRegion(roomCode, pickId);
+  }, GAME_TIMERS.REGION_PICK * SPEED_RUN_MODE);
 };
 
-export const answerPlayerPickRegion = async (username, region) => {
+export const answerPickRegion = async (username, region) => {
   const roomCode = users[username].roomCode;
 
-  if (rooms[roomCode].gameState !== GAME_STATES.PICK_REGION) return;
+  console.log("answerPickRegion", username, region, rooms[roomCode]);
+
+  if (rooms[roomCode].gameState !== GAME_STATES.REGION_PICK) return;
   if (rooms[roomCode].currentPick.username !== username) return;
 
   rooms[roomCode].currentPick.region = region;
 
-  finishPickRegion(roomCode);
+  finishPickRegion(roomCode, rooms[roomCode].currentPick.id);
 };
 
-const finishPickRegion = async (roomCode) => {
-  if (rooms[roomCode].gameState !== GAME_STATES.PICK_REGION) return;
+const finishPickRegion = async (roomCode, pickId) => {
+  if (rooms[roomCode].gameState !== GAME_STATES.REGION_PICK) return;
+  if (rooms[roomCode].currentPick.id !== pickId) return;
+
+  rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
 
   console.log("finishPickRegion ", rooms[roomCode]);
 
   let pickValid = false;
 
   if (rooms[roomCode].currentPick.region) {
-    pickValid = isPlayerRegionNeighbor(
-      rooms[roomCode].currentPick.username,
-      rooms[roomCode].currentPick.region
-    );
+    pickValid =
+      isPlayerRegionNeighbor(
+        rooms[roomCode].currentPick.username,
+        rooms[roomCode].currentPick.region
+      ) || !rooms[roomCode].currentPick.onlyNeighbors;
   }
 
   if (pickValid) {
@@ -240,7 +365,10 @@ const finishPickRegion = async (roomCode) => {
   } else {
     for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
       if (rooms[roomCode].map[idx].owner !== null) continue;
-      if (!isPlayerRegionNeighbor(rooms[roomCode].currentPick.username, idx))
+      if (
+        !isPlayerRegionNeighbor(rooms[roomCode].currentPick.username, idx) &&
+        rooms[roomCode].currentPick.onlyNeighbors
+      )
         continue;
 
       rooms[roomCode].map[idx].owner = rooms[roomCode].currentPick.username;
@@ -248,17 +376,131 @@ const finishPickRegion = async (roomCode) => {
     }
   }
 
+  rooms[roomCode].pickRegionHistory.push(rooms[roomCode].currentPick.username);
+
   delete rooms[roomCode].currentPick;
-  rooms[roomCode].gameState = GAME_STATES.PICK_REGION_RESULTS;
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitMiliseconds(GAME_TIMERS.PICK_REGION_AFTER);
+  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS * SPEED_RUN_MODE);
 
-  tryPlayerPickRegion(roomCode);
+  setNextGameState(roomCode);
 };
 
-const continueGame = async (roomCode) => {
-  console.log("continueGame " + roomCode);
+const allRegionsTaken = async (roomCode) => {
+  rooms[roomCode].gameStage = GAME_STAGES.BATTLE_REGIONS;
+
+  // temporary for testing
+  SPEED_RUN_MODE = 1;
+
+  delete rooms[roomCode].pickRegionQueue;
+  delete rooms[roomCode].pickRegionHistory;
+
+  rooms[roomCode].attackRegionQueue = [];
+  rooms[roomCode].attackRegionHistory = [];
+
+  for (let i = 0; i < NUMBER_OF_ROUNDS; i++) {
+    rooms[roomCode].attackRegionQueue = rooms[
+      roomCode
+    ].attackRegionQueue.concat(shuffleArray(rooms[roomCode].players));
+  }
+
+  // temporary for testing
+  rooms[roomCode].attackRegionQueue = rooms[roomCode].attackRegionQueue.filter(
+    (str) => !str.includes("testbot_")
+  );
+
+  console.log("allRegionsTaken " + roomCode);
   console.log(rooms[roomCode]);
+
+  setNextGameState(roomCode);
+};
+
+const attackRegion = async (roomCode) => {
+  rooms[roomCode].gameState = GAME_STATES.REGION_ATTACK;
+
+  const attacker = rooms[roomCode].attackRegionQueue.shift();
+  const attackId = rooms[roomCode].attackRegionQueue.length;
+
+  rooms[roomCode].startTime = new Date().getTime();
+  rooms[roomCode].endTime =
+    new Date().getTime() + GAME_TIMERS.REGION_ATTACK * SPEED_RUN_MODE;
+  rooms[roomCode].currentAttack = {
+    id: attackId,
+    attacker: attacker,
+    defender: null,
+    region: null,
+  };
+
+  console.log("attackRegion", rooms[roomCode]);
+
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
+
+  setTimeout(() => {
+    finishAttackRegion(roomCode, attackId);
+  }, GAME_TIMERS.REGION_ATTACK * SPEED_RUN_MODE);
+};
+
+export const answerAttackRegion = async (username, region) => {
+  const roomCode = users[username].roomCode;
+
+  if (rooms[roomCode].gameState !== GAME_STATES.REGION_ATTACK) return;
+  if (rooms[roomCode].currentAttack.attacker !== username) return;
+
+  rooms[roomCode].currentAttack.region = region;
+
+  finishAttackRegion(roomCode, rooms[roomCode].currentAttack.id);
+};
+
+const finishAttackRegion = async (roomCode, attackId) => {
+  if (rooms[roomCode].gameState !== GAME_STATES.REGION_ATTACK) return;
+  if (rooms[roomCode].currentAttack.id !== attackId) return;
+
+  rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
+
+  let attackValid = false;
+
+  if (rooms[roomCode].currentAttack.region) {
+    attackValid =
+      isPlayerRegionNeighbor(
+        rooms[roomCode].currentAttack.attacker,
+        rooms[roomCode].currentAttack.region
+      ) &&
+      rooms[roomCode].map[rooms[roomCode].currentAttack.region].owner !==
+        rooms[roomCode].currentAttack.attacker;
+  }
+
+  if (attackValid) {
+    rooms[roomCode].currentAttack.defender =
+      rooms[roomCode].map[rooms[roomCode].currentAttack.region].owner;
+  } else {
+    for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
+      // temporary for testing
+      if (rooms[roomCode].map[idx].owner.includes("testbot_")) continue;
+
+      if (
+        rooms[roomCode].map[idx].owner ===
+        rooms[roomCode].currentAttack.attacker
+      )
+        continue;
+      if (!isPlayerRegionNeighbor(rooms[roomCode].currentAttack.attacker, idx))
+        continue;
+
+      rooms[roomCode].currentAttack.region = idx;
+      rooms[roomCode].currentAttack.defender = rooms[roomCode].map[idx].owner;
+      break;
+    }
+  }
+
+  console.log("finishAttackRegion", rooms[roomCode]);
+
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
+
+  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS * SPEED_RUN_MODE);
+
+  setNextGameState(roomCode);
+};
+
+const endGame = async (roomCode) => {
+  console.log("endGame " + roomCode);
 };

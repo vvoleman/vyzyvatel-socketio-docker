@@ -15,37 +15,24 @@ export const ROOM_STATES = {
 export const GAME_STATES = {
   START: "starting",
 
-  PICK_REGION: "pick_region", // who is picking, end time
-  PICK_REGION_RESULTS: "pick_region_results", // who picked, region picked, end time
+  REGION_PICK: "region_pick",
+  REGION_ATTACK: "region_attack",
+  REGION_BATTLE: "region_battle",
+  REGION_RESULTS: "region_results",
 
-  ALL_GUESS: "all_guess", // playerAnswers, start time, end time
-  ALL_RESULTS: "all_results", // player answers, winner, second winner
+  QUESTION_GUESS: "question_guess",
+  QUESTION_RESULTS: "question_results",
+};
 
-  ATTACK_GUESS: "attack_guess", // involvedPlayers, playerAnswers, start time, end time
-  ATTACK_RESULTS: "attack_results", // involvedPlayers, playerAnswers, start time, end time
+export const GAME_STAGES = {
+  TAKE_REGIONS: "take_regions",
+  BATTLE_REGIONS: "battle_regions",
 };
 
 export const QUESTION_TYPES = {
   PICK: "pick",
   NUMERIC: "numeric",
   IMAGE: "image",
-};
-
-export const PLAYER_COLORS = {
-  RED: "#FF4545",
-  GREEN: "#52FF68",
-  BLUE: "#4EBAFF",
-};
-
-export const BACKEND_URL = "http://127.0.0.1:8000";
-
-export const GAME_TIMERS = {
-  START: 1 * 1000, // 5
-  QUESTION_READY: 1 * 1000, // 3.5
-  QUESTION_GUESS: 2 * 1000, // 10
-  QUESTION_RESULTS: 2 * 1000, // 7
-  PICK_REGION: 10 * 1000,
-  PICK_REGION_AFTER: 3 * 1000,
 };
 
 export const GAME_REGION_NEIGHBORS = {
@@ -66,3 +53,30 @@ export const GAME_REGION_NEIGHBORS = {
 };
 
 export const NUMBER_OF_REGIONS = 14;
+
+export const PLAYER_COLORS = {
+  RED: "#FF4545",
+  GREEN: "#52FF68",
+  BLUE: "#4EBAFF",
+};
+
+// ------------ SERVER DEDICATED ------------
+export const BACKEND_URL = "http://127.0.0.1:8000";
+
+const speedRun = false;
+
+export const GAME_TIMERS = {
+  START: speedRun ? 500 : 6 * 1000, // 6
+
+  QUESTION_READY: speedRun ? 500 : 3 * 1000, // 3
+  QUESTION_GUESS: speedRun ? 500 : 6 * 1000, // 6
+  QUESTION_RESULTS: speedRun ? 500 : 4 * 1000, // 4
+  QUESTION_EVALUALTION: speedRun ? 500 : 1 * 1000, // 1
+
+  REGION_PICK: speedRun ? 500 : 5 * 1000, // 5
+  REGION_ATTACK: speedRun ? 500 : 10000 * 1000, // 5
+  REGION_RESULTS: speedRun ? 500 : 1.5 * 1000, // 1.5
+};
+
+export const NUMBER_OF_ROUNDS = 4;
+export const IMAGE_QUESTION_CHANCE = 0.2;

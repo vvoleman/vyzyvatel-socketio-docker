@@ -17,8 +17,8 @@ import { getCategories } from "./src/getRequests.js";
 import { updateUserOnLogin } from "./src/logic/users.js";
 import {
   startGame,
-  answerAllQuestion,
-  answerPlayerPickRegion,
+  answerQuestion,
+  answerPickRegion,
 } from "./src/logic/game.js";
 
 const app = express();
@@ -82,18 +82,18 @@ io.on("connection", (socket) => {
     startGame(username);
   });
 
-  socket.on("answer-question", (username, answer) => {
+  socket.on("answer-question", (username, answer, auto) => {
     debugLog(
       `${username} answered question ${answer} in ${users[username].roomCode}`
     );
-    answerAllQuestion(username, answer);
+    answerQuestion(username, answer, auto);
   });
 
   socket.on("answer-pick-region", (username, answer) => {
     debugLog(
       `${username} answered pick region (${answer}) in ${users[username].roomCode}`
     );
-    answerPlayerPickRegion(username, answer);
+    answerPickRegion(username, answer);
   });
 
   socket.on("send-message", (messData, username) => {

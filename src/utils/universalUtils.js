@@ -1,5 +1,9 @@
 import { DEBUG } from "../constants.js";
 
+export function getTrueOrFalseByChance(chance) {
+  return Math.random() < chance ? true : false;
+}
+
 export const shuffleArray = (refArray) => {
   const array = [...refArray];
   let currentIndex = array.length,
