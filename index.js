@@ -19,6 +19,7 @@ import {
   startGame,
   answerQuestion,
   answerPickRegion,
+  answerAttackRegion,
 } from "./src/logic/game.js";
 
 const app = express();
@@ -94,6 +95,13 @@ io.on("connection", (socket) => {
       `${username} answered pick region (${answer}) in ${users[username].roomCode}`
     );
     answerPickRegion(username, answer);
+  });
+
+  socket.on("answer-attack-region", (username, answer) => {
+    debugLog(
+      `${username} answered attack region (${answer}) in ${users[username].roomCode}`
+    );
+    answerAttackRegion(username, answer);
   });
 
   socket.on("send-message", (messData, username) => {

@@ -54,12 +54,6 @@ export const GAME_REGION_NEIGHBORS = {
 
 export const NUMBER_OF_REGIONS = 14;
 
-export const PLAYER_COLORS = {
-  RED: "#FF4545",
-  GREEN: "#52FF68",
-  BLUE: "#4EBAFF",
-};
-
 // ------------ SERVER DEDICATED ------------
 export const BACKEND_URL = "http://127.0.0.1:8000";
 
@@ -74,9 +68,12 @@ export const GAME_TIMERS = {
   QUESTION_EVALUALTION: speedRun ? 500 : 1 * 1000, // 1
 
   REGION_PICK: speedRun ? 500 : 5 * 1000, // 5
-  REGION_ATTACK: speedRun ? 500 : 10000 * 1000, // 5
+  REGION_ATTACK: speedRun ? 500 : 5 * 1000, // 5
   REGION_RESULTS: speedRun ? 500 : 1.5 * 1000, // 1.5
+
+  BATTLE_FINISH: speedRun ? 500 : 1.5 * 1000, // 1.5
 };
 
 export const NUMBER_OF_ROUNDS = 4;
-export const IMAGE_QUESTION_CHANCE = 0.2;
+export const IMAGE_QUESTION_CHANCE = 1;
+export const DEFENDER_PRICE_BONUS = 100;

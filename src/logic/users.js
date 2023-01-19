@@ -1,5 +1,6 @@
 import { users, rooms } from "../globals.js";
 import { USER_STATES } from "../constants.js";
+import { deepCopy } from "../utils/universalUtils.js";
 
 export const updateUserLastActivity = (username) => {
   users[username] = {
@@ -30,8 +31,23 @@ export const updateUserOnLogin = (username, useremail, socket, callback) => {
     };
   }
 
+  if (users[username].roomCode === null) {
+    callback({
+      userInfo: users[username],
+      roomInfo: null,
+    });
+  }
+
+  const roomInfo = deepCopy(rooms[users[username].roomCode]);
+
+  try {
+    roomInfo.currentQuestion.answers = roomInfo.currentQuestion.answers.filter(
+      (answer) => answer.username === username
+    );
+  } catch (e) {}
+
   callback({
     userInfo: users[username],
-    roomInfo: users[username].roomCode ? rooms[users[username].roomCode] : null,
+    roomInfo: roomInfo,
   });
 };

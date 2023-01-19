@@ -1,6 +1,5 @@
 import {
   QUESTION_TYPES,
-  PLAYER_COLORS,
   GAME_REGION_NEIGHBORS,
   NUMBER_OF_REGIONS,
 } from "../constants.js";
@@ -70,6 +69,10 @@ export const setCurrentQuestion = (roomCode, questionType) => {
   switch (questionType) {
     case QUESTION_TYPES.PICK:
       currentQuestion = questionSets[roomCode].pickQuestions.pop();
+
+      console.log("pickQuestions", questionSets[roomCode].pickQuestions);
+      if (currentQuestion === null) console.log("currentPickQuestions is null");
+
       currentQuestion.wrong_answers.push(currentQuestion.right_answer);
       currentQuestion = {
         id: currentQuestion.id,
@@ -86,7 +89,7 @@ export const setCurrentQuestion = (roomCode, questionType) => {
 
       console.log("numericQuestions", questionSets[roomCode].numericQuestions);
       if (currentQuestion === null)
-        console.log("currentQuestionNumeric is null");
+        console.log("currentNumericQuestion is null");
 
       currentQuestion = {
         id: currentQuestion.id,

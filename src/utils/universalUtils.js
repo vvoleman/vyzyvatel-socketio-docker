@@ -9,7 +9,7 @@ export const shuffleArray = (refArray) => {
   let currentIndex = array.length,
     randomIndex;
 
-  while (currentIndex != 0) {
+  while (currentIndex !== 0) {
     randomIndex = Math.floor(Math.random() * currentIndex);
     currentIndex--;
 
@@ -34,7 +34,7 @@ export const debugLog = (message) => {
   if (DEBUG) console.log(message);
 };
 
-export const deepCopyDict = (obj) => {
+export const deepCopy = (obj) => {
   if (obj === null || typeof obj !== "object") {
     return obj;
   }
@@ -43,12 +43,12 @@ export const deepCopyDict = (obj) => {
   if (Array.isArray(obj)) {
     copy = [];
     for (let i = 0; i < obj.length; i++) {
-      copy[i] = deepCopyDict(obj[i]);
+      copy[i] = deepCopy(obj[i]);
     }
   } else {
     copy = {};
     for (const key in obj) {
-      copy[key] = deepCopyDict(obj[key]);
+      copy[key] = deepCopy(obj[key]);
     }
   }
 
