@@ -26,7 +26,12 @@ import { CLEAN_INTERVAL_TIME } from "./src/constants.js";
 import { deleteAfkLobbies, deleteAfkMenuUsers } from "./src/cleanups.js";
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+  })
+);
 
 const server = http.createServer(app);
 export const io = new Server(server, {
