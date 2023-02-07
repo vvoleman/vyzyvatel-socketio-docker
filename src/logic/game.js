@@ -30,7 +30,7 @@ import {
 } from "../utils/gameUtils.js";
 import { updateUserLastActivity } from "./users.js";
 
-var SPEED_RUN_MODE = 0.1;
+var SPEED_RUN_MODE = 1;
 
 Array.prototype.sortByDifferenceTime = function (array) {
   this.sort((obj1, obj2) => {
