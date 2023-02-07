@@ -30,8 +30,6 @@ export const numberOfAviableRegions = (roomCode) => {
 export const isPlayerRegionNeighbor = (username, regionIdx) => {
   const roomCode = users[username].roomCode;
 
-  if (roomCode === undefined) console.log("BOT ERROR roomCode is undefined");
-
   const playerRegions = [];
 
   for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
@@ -41,18 +39,16 @@ export const isPlayerRegionNeighbor = (username, regionIdx) => {
     playerRegions.push(idx);
   }
 
+  if (playerRegions.length === 0) { // player has no regions
+    playerRegions.push(14);
+  }
+
   return GAME_REGION_NEIGHBORS[regionIdx].some((regIdx) =>
     playerRegions.includes(regIdx)
   );
 };
 
 export const pickPlayerColors = (players) => {
-  let i = 1;
-  while (players.length < 3) {
-    let name = "testbot_" + i;
-    players.push(name);
-    i++;
-  }
   const shuffledPlayers = shuffleArray(players);
   const playerColors = {};
 
@@ -70,9 +66,6 @@ export const setCurrentQuestion = (roomCode, questionType) => {
     case QUESTION_TYPES.PICK:
       currentQuestion = questionSets[roomCode].pickQuestions.pop();
 
-      console.log("pickQuestions", questionSets[roomCode].pickQuestions);
-      if (currentQuestion === null) console.log("currentPickQuestions is null");
-
       currentQuestion.wrong_answers.push(currentQuestion.right_answer);
       currentQuestion = {
         id: currentQuestion.id,
@@ -87,10 +80,6 @@ export const setCurrentQuestion = (roomCode, questionType) => {
     case QUESTION_TYPES.NUMERIC:
       currentQuestion = questionSets[roomCode].numericQuestions.pop();
 
-      console.log("numericQuestions", questionSets[roomCode].numericQuestions);
-      if (currentQuestion === null)
-        console.log("currentNumericQuestion is null");
-
       currentQuestion = {
         id: currentQuestion.id,
         question: currentQuestion.question,
@@ -102,6 +91,7 @@ export const setCurrentQuestion = (roomCode, questionType) => {
 
     case QUESTION_TYPES.IMAGE:
       currentQuestion = questionSets[roomCode].imageQuestions.pop();
+
       currentQuestion.wrong_answers.push(currentQuestion.right_answer);
       currentQuestion = {
         id: currentQuestion.id,

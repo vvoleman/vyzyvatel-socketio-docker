@@ -1,4 +1,5 @@
-export const DEBUG = true;
+import dotenv from "dotenv";
+dotenv.config();
 
 export const USER_STATES = {
   MENU: "v menu",
@@ -36,44 +37,45 @@ export const QUESTION_TYPES = {
 };
 
 export const GAME_REGION_NEIGHBORS = {
-  0: [6, 1, 8, 9],
-  1: [6, 0, 8, 13],
-  2: [13, 7, 5, 4, 3],
-  3: [2, 4, 12],
-  4: [5, 2, 3, 12],
-  5: [11, 8, 7, 2, 4],
-  6: [1, 0, 8],
-  7: [8, 13, 2, 5],
-  8: [9, 0, 1, 13, 7, 5, 11, 10],
-  9: [0, 8, 11],
+  0: [1, 6, 8, 9, 14],
+  1: [0, 6, 8, 13, 14],
+  2: [3, 4, 5, 7, 13, 14],
+  3: [2, 4, 12, 14],
+  4: [2, 3, 5, 12, 14],
+  5: [2, 4, 7, 8, 11, 14],
+  6: [0, 1, 8, 14],
+  7: [2, 5, 8, 13],
+  8: [0, 1, 5, 6, 7, 9, 10, 11, 13],
+  9: [0, 8, 11, 14],
   10: [8],
-  11: [9, 8, 5],
-  12: [4, 3],
-  13: [1, 8, 7, 2],
+  11: [5, 8, 9, 14],
+  12: [3, 4, 14],
+  13: [1, 2, 7, 8, 14],
+  14: [0, 1, 2, 3, 4, 5, 6, 9, 11, 12, 13],
 };
 
 export const NUMBER_OF_REGIONS = 14;
 
 // ------------ SERVER DEDICATED ------------
-export const BACKEND_URL = "http://127.0.0.1:8000";
 
-const speedRun = false;
+export const BACKEND_URL = process.env.BACKEND_URL;
 
 export const GAME_TIMERS = {
-  START: speedRun ? 500 : 6 * 1000, // 6
+  START: 6 * 1000, // 6
 
-  QUESTION_READY: speedRun ? 500 : 3 * 1000, // 3
-  QUESTION_GUESS: speedRun ? 500 : 6 * 1000, // 6
-  QUESTION_RESULTS: speedRun ? 500 : 4 * 1000, // 4
-  QUESTION_EVALUALTION: speedRun ? 500 : 1 * 1000, // 1
+  QUESTION_READY: 3 * 1000, // 3
+  QUESTION_GUESS: 6 * 1000, // 6
+  QUESTION_RESULTS: 4 * 1000, // 4
+  QUESTION_EVALUALTION: 1 * 1000, // 1
 
-  REGION_PICK: speedRun ? 500 : 5 * 1000, // 5
-  REGION_ATTACK: speedRun ? 500 : 5 * 1000, // 5
-  REGION_RESULTS: speedRun ? 500 : 1.5 * 1000, // 1.5
+  REGION_PICK: 5 * 1000, // 5
+  REGION_ATTACK: 5 * 1000, // 5
+  REGION_RESULTS: 3 * 1000, // 1.5
 
-  BATTLE_FINISH: speedRun ? 500 : 1.5 * 1000, // 1.5
+  BATTLE_FINISH: 1.5 * 1000, // 1.5
 };
 
 export const NUMBER_OF_ROUNDS = 4;
-export const IMAGE_QUESTION_CHANCE = 1;
+export const IMAGE_QUESTION_CHANCE = 0.4;
 export const DEFENDER_PRICE_BONUS = 100;
+export const CLEAN_INTERVAL_TIME = 60 * 1000 * 30; // 30 minutes

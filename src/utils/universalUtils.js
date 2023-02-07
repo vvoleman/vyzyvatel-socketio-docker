@@ -1,5 +1,3 @@
-import { DEBUG } from "../constants.js";
-
 export function getTrueOrFalseByChance(chance) {
   return Math.random() < chance ? true : false;
 }
@@ -28,10 +26,6 @@ export const arrayRemove = (arr, value) => {
       i--;
     }
   }
-};
-
-export const debugLog = (message) => {
-  if (DEBUG) console.log(message);
 };
 
 export const deepCopy = (obj) => {

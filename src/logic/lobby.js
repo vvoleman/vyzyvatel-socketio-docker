@@ -7,7 +7,7 @@ import {
 } from "../globals.js";
 import { ROOM_STATES, USER_STATES } from "../constants.js";
 import { updateUserLastActivity } from "./users.js";
-import { arrayRemove, debugLog } from "../utils/universalUtils.js";
+import { arrayRemove } from "../utils/universalUtils.js";
 
 const generateCode = (len) => {
   const characters = "123456789ABCDEFGHJKLMNPRSTUXYZ";
@@ -36,7 +36,7 @@ export const createRoom = (username, socket, callback) => {
     players: [username],
     emails: { [username]: users[username].email },
     blacklist: [],
-    categories: categories,
+    categories: [...categories],
   };
 
   users[username] = {
@@ -84,13 +84,11 @@ export const cancelRoom = (username, io) => {
 
 export const joinRoom = (username, roomCode, callback, socket, io) => {
   if (!(roomCode in rooms)) {
-    debugLog(`${username} tried join 404 room: ${roomCode}`);
     callback("404");
     return;
   }
 
   if (rooms[roomCode].players.length >= 3) {
-    debugLog(`${username} tried join full room: ${roomCode}`);
     callback("full");
     return;
   }
@@ -99,7 +97,6 @@ export const joinRoom = (username, roomCode, callback, socket, io) => {
   rooms[roomCode].blacklist.forEach((bannedUser) => {
     if (bannedUser === username) {
       callback("banned");
-      debugLog(`${username} tried join banned room ${roomCode}`);
       isBanned = true;
       return;
     }
@@ -207,10 +204,6 @@ const updatePublicRoomCodes = (roomCode) => {
   }
 
   if (!change) return;
-
-  debugLog(
-    `PublicRoomCodes changed: ${JSON.stringify(publicRoomCodes, null, 2)}`
-  );
 };
 
 const updatePublicRooms = () => {

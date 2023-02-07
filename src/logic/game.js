@@ -10,7 +10,7 @@ import {
   GAME_STAGES,
   DEFENDER_PRICE_BONUS,
 } from "../constants.js";
-import { users, rooms } from "../globals.js";
+import { users, rooms, questionSets } from "../globals.js";
 import { getQuestionSet } from "../getRequests.js";
 import {
   shuffleArray,
@@ -28,6 +28,7 @@ import {
   numberOfAviableRegions,
   hasAnyAviableNeighbor,
 } from "../utils/gameUtils.js";
+import { updateUserLastActivity } from "./users.js";
 
 var SPEED_RUN_MODE = 0.1;
 
@@ -57,7 +58,7 @@ export const startGame = async (username) => {
 
   if (rooms[roomCode].owner !== username) return;
   if (rooms[roomCode].state !== ROOM_STATES.LOBBY) return;
-  //if (rooms[roomCode].players.length !== 3) return;
+  if (rooms[roomCode].players.length !== 3) return;
 
   await getQuestionSet(roomCode);
 
@@ -72,7 +73,6 @@ export const startGame = async (username) => {
     gameStage: GAME_STAGES.TAKE_REGIONS,
     map: defaultMapInfo(),
     playerColors: pickPlayerColors(rooms[roomCode].players),
-    started: new Date(Date.now()),
     pickRegionHistory: [],
     startTime: new Date().getTime(),
     endTime: new Date().getTime() + GAME_TIMERS.START * SPEED_RUN_MODE,
@@ -98,6 +98,7 @@ export const startGame = async (username) => {
   setNextGameState(roomCode);
 };
 
+// WARNING: indentation hell
 const setNextGameState = async (roomCode) => {
   switch (rooms[roomCode].gameState) {
     case GAME_STATES.START:
@@ -111,7 +112,6 @@ const setNextGameState = async (roomCode) => {
 
           const aviableRegions = numberOfAviableRegions(roomCode);
           const answers = rooms[roomCode].currentQuestion.answers;
-          console.log("answers", answers);
 
           if (aviableRegions === 2) {
             rooms[roomCode].pickRegionQueue.push(answers[0].username);
@@ -133,7 +133,8 @@ const setNextGameState = async (roomCode) => {
 
         case GAME_STAGES.BATTLE_REGIONS:
           switch (rooms[roomCode].currentQuestion.type) {
-            case QUESTION_TYPES.PICK || QUESTION_TYPES.IMAGE:
+            case QUESTION_TYPES.IMAGE: // img and pick have same logic
+            case QUESTION_TYPES.PICK:
               const question = rooms[roomCode].currentQuestion;
 
               let correctAnswers = 0;
@@ -225,7 +226,7 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
 
   // temporary for testing
   if (rooms[roomCode].gameStage === GAME_STAGES.BATTLE_REGIONS) {
-    SPEED_RUN_MODE = 10000;
+    SPEED_RUN_MODE = 1;
   }
 
   rooms[roomCode] = {
@@ -247,17 +248,14 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
   delete clientRoomInfo.currentQuestion.rightAnswer;
   delete clientRoomInfo.currentQuestion.answers;
 
-  console.log(
-    "askQuestion " + roomCode,
-    involvedPlayers,
-    questionType,
-    rooms[roomCode]
-  );
-
   io.to(roomCode).emit("room-update", clientRoomInfo);
 
   setTimeout(() => {
-    finishQuestion(roomCode, clientRoomInfo.currentQuestion.id); // id must be value not reference (deepCopy)
+    try {
+      finishQuestion(roomCode, clientRoomInfo.currentQuestion.id); // id must be value not reference (deepCopy)
+    } catch (e) {
+      console.error(e);
+    }
   }, GAME_TIMERS.QUESTION_READY * SPEED_RUN_MODE + GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE + GAME_TIMERS.QUESTION_EVALUALTION * SPEED_RUN_MODE);
 };
 
@@ -280,8 +278,6 @@ export const answerQuestion = (username, answer, auto) => {
       : new Date().getTime() - rooms[roomCode].startTime,
   });
 
-  console.log("answerQuestion " + username);
-
   // all involvedPlayers answered
   if (
     rooms[roomCode].currentQuestion.answers.length ===
@@ -299,25 +295,15 @@ const finishQuestion = async (roomCode, questionId) => {
 
   // generate answer for players that did not answer
   if (answers.length < rooms[roomCode].currentQuestion.involvedPlayers.length) {
-    rooms[roomCode].players.forEach((player) => {
+    rooms[roomCode].currentQuestion.involvedPlayers.forEach((player) => {
       if (!isInAnswers(player, answers)) {
         switch (rooms[roomCode].currentQuestion.type) {
           case QUESTION_TYPES.NUMERIC:
-            // temporary for testing
-            if (player.indexOf("testbot") !== -1) {
-              answers.push({
-                username: player,
-                answer: -9999,
-                time: GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE,
-              });
-            } else {
-              answers.push({
-                username: player,
-                answer: 0,
-                time: GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE,
-              });
-            }
-            break;
+            answers.push({
+              username: player,
+              answer: 0,
+              time: GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE,
+            });
         }
       }
     });
@@ -336,6 +322,7 @@ const finishQuestion = async (roomCode, questionId) => {
       });
       break;
 
+    case QUESTION_TYPES.IMAGE:
     case QUESTION_TYPES.PICK:
       answers.forEach((ans) => {
         ans.correct =
@@ -348,9 +335,6 @@ const finishQuestion = async (roomCode, questionId) => {
   rooms[roomCode].startTime = new Date().getTime() * SPEED_RUN_MODE;
   rooms[roomCode].endTime =
     new Date().getTime() + GAME_TIMERS.QUESTION_RESULTS * SPEED_RUN_MODE;
-
-  console.log("finishQuestion", rooms[roomCode]);
-  console.log("answers", answers);
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
@@ -377,19 +361,19 @@ const pickRegion = async (roomCode) => {
     onlyNeighbors: hasAnyAviableNeighbor(username),
   };
 
-  console.log("pickRegion", rooms[roomCode]);
-
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   setTimeout(() => {
-    finishPickRegion(roomCode, pickId);
+    try {
+      finishPickRegion(roomCode, pickId);
+    } catch (e) {
+      console.error(e);
+    }
   }, GAME_TIMERS.REGION_PICK * SPEED_RUN_MODE);
 };
 
 export const answerPickRegion = async (username, region) => {
   const roomCode = users[username].roomCode;
-
-  console.log("answerPickRegion", username, region, rooms[roomCode]);
 
   if (rooms[roomCode].gameState !== GAME_STATES.REGION_PICK) return;
   if (rooms[roomCode].currentPick.username !== username) return;
@@ -440,8 +424,6 @@ const finishPickRegion = async (roomCode, pickId) => {
 
   await waitMiliseconds(GAME_TIMERS.REGION_RESULTS * SPEED_RUN_MODE);
 
-  console.log("finishPickRegion ", rooms[roomCode]);
-
   setNextGameState(roomCode);
 };
 
@@ -459,14 +441,6 @@ const allRegionsTaken = async (roomCode) => {
       roomCode
     ].attackRegionQueue.concat(shuffleArray(rooms[roomCode].players));
   }
-
-  // temporary for testing
-  rooms[roomCode].attackRegionQueue = rooms[roomCode].attackRegionQueue.filter(
-    (str) => !str.includes("testbot_")
-  );
-
-  console.log("allRegionsTaken " + roomCode);
-  console.log(rooms[roomCode]);
 
   setNextGameState(roomCode);
 };
@@ -487,12 +461,14 @@ const attackRegion = async (roomCode) => {
     region: null,
   };
 
-  console.log("attackRegion", rooms[roomCode]);
-
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   setTimeout(() => {
-    finishAttackRegion(roomCode, attackId);
+    try {
+      finishAttackRegion(roomCode, attackId);
+    } catch (e) {
+      console.error(e);
+    }
   }, GAME_TIMERS.REGION_ATTACK * SPEED_RUN_MODE);
 };
 
@@ -530,9 +506,6 @@ const finishAttackRegion = async (roomCode, attackId) => {
       rooms[roomCode].map[rooms[roomCode].currentAttack.region].owner;
   } else {
     for (let idx = 0; idx < NUMBER_OF_REGIONS; idx++) {
-      // temporary for testing
-      if (rooms[roomCode].map[idx].owner.includes("testbot_")) continue;
-
       if (
         rooms[roomCode].map[idx].owner ===
         rooms[roomCode].currentAttack.attacker
@@ -546,8 +519,6 @@ const finishAttackRegion = async (roomCode, attackId) => {
       break;
     }
   }
-
-  console.log("finishAttackRegion", rooms[roomCode]);
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
@@ -572,7 +543,7 @@ const finishBattle = async (roomCode, winner) => {
   rooms[roomCode].endTime =
     new Date().getTime() + GAME_TIMERS.BATTLE_FINISH * SPEED_RUN_MODE;
 
-  console.log("finishBattle, winner: ", winner, rooms[roomCode]);
+  rooms[roomCode].attackRegionHistory.push(winner);
 
   await waitMiliseconds(GAME_TIMERS.BATTLE_FINISH * SPEED_RUN_MODE);
 
@@ -580,5 +551,26 @@ const finishBattle = async (roomCode, winner) => {
 };
 
 const endGame = async (roomCode) => {
-  console.log("endGame " + roomCode, rooms[roomCode]);
+  rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
+
+  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS * SPEED_RUN_MODE);
+
+  rooms[roomCode].state = ROOM_STATES.ENDED;
+  rooms[roomCode].roomCode = roomCode;
+  io.to(roomCode).emit("room-update", rooms[roomCode]);
+
+  rooms[roomCode].players.forEach((player) => {
+    users[player] = {
+      ...users[player],
+      state: USER_STATES.MENU,
+    };
+    const socket = io.sockets.sockets.get(users[player].socket);
+    socket.leave(roomCode);
+    users[player].roomCode = null;
+    updateUserLastActivity(player);
+  });
+
+  delete rooms[roomCode];
+  delete questionSets[roomCode];
 };
