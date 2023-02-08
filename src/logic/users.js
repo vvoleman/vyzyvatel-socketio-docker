@@ -31,6 +31,10 @@ export const updateUserOnLogin = (username, useremail, socket, callback) => {
     };
   }
 
+  const socketById = io.sockets.sockets.get(users[username].socket);
+
+  console.log(socket.id, socketById.id, socket.id === socketById.id);
+
   if (users[username].roomCode === null) {
     callback({
       userInfo: users[username],

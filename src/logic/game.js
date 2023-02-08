@@ -559,14 +559,11 @@ const endGame = async (roomCode) => {
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   rooms[roomCode].players.forEach((player) => {
-    console.log("double", io.sockets.sockets.get(users[player].socket));
-    console.log("single", io.sockets.get(users[player].socket));
-
     const socket = io.sockets.sockets.get(users[player].socket);
-    if (socket !== undefined) {
+    try {
       socket.leave(roomCode);
-    } else {
-      console.log("socket is undefined", users[player]);
+    } catch (e) {
+      console.error(e);
     }
     users[player] = {
       ...users[player],
