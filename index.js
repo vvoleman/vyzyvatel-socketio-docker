@@ -110,8 +110,7 @@ io.on("connection", (socket) => {
   socket.on("update-room", (username, roomInfo) => {
     try {
       updateRoom(username, roomInfo, io);
-      debugLog(`${username} updated room ${users[username].roomCode} 
-    ${JSON.stringify(rooms[users[username].roomCode], null, 2)}`);
+      debugLog(`${username} updated room ${users[username].roomCode}`);
     } catch (error) {
       console.error(error);
     }
