@@ -38,7 +38,7 @@ export function endpoints(app) {
   app.get("/api/rooms", function (req, res) {
     if (!checkKey(req, res)) return;
 
-    res.send({ count: Object.keys(rooms).length, users: rooms });
+    res.send({ count: Object.keys(rooms).length, rooms: rooms });
   });
 
   app.get("/api/rooms/:roomcode", function (req, res) {

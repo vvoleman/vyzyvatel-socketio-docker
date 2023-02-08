@@ -559,10 +559,9 @@ const endGame = async (roomCode) => {
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   rooms[roomCode].players.forEach((player) => {
-    const socketById = io.sockets.sockets.get(users[player].socket);
     try {
-      socketById.leave(roomCode);
-      console.log(socketById.id, socketById.rooms);
+      if (io.sockets.sockets.get(users[player].socket))
+        io.sockets.sockets.get(users[player].socket).leave(roomCode);
     } catch (e) {
       console.error(e);
     }
