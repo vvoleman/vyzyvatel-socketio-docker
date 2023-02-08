@@ -170,10 +170,8 @@ export const kickUserFromRoom = (username, kicked, io) => {
 
   rooms[roomCode].blacklist = [...rooms[roomCode].blacklist, kicked];
 
-  /*
   if (io.sockets.sockets.get(users[kicked].socket))
     io.sockets.sockets.get(users[kicked].socket).leave(users[kicked].roomCode);
-    */
 
   updateUserLastActivity(username);
 

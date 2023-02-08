@@ -560,8 +560,8 @@ const endGame = async (roomCode) => {
 
   rooms[roomCode].players.forEach((player) => {
     try {
-      //if (io.sockets.sockets.get(users[player].socket))
-      io.sockets.sockets.get(users[player].socket).leave(roomCode);
+      if (io.sockets.sockets.get(users[player].socket))
+        io.sockets.sockets.get(users[player].socket).leave(roomCode);
     } catch (e) {
       console.log(e);
     }
