@@ -39,7 +39,8 @@ export const isPlayerRegionNeighbor = (username, regionIdx) => {
     playerRegions.push(idx);
   }
 
-  if (playerRegions.length === 0) { // player has no regions
+  if (playerRegions.length === 0) {
+    // player has no regions
     playerRegions.push(14);
   }
 
@@ -72,6 +73,7 @@ export const setCurrentQuestion = (roomCode, questionType) => {
         question: currentQuestion.question,
         possibleAnswers: shuffleArray(currentQuestion.wrong_answers),
         type: QUESTION_TYPES.PICK,
+        category: currentQuestion.get_category,
 
         rightAnswer: currentQuestion.right_answer,
       };
@@ -84,6 +86,7 @@ export const setCurrentQuestion = (roomCode, questionType) => {
         id: currentQuestion.id,
         question: currentQuestion.question,
         type: QUESTION_TYPES.NUMERIC,
+        category: currentQuestion.get_category,
 
         rightAnswer: currentQuestion.right_answer,
       };
@@ -99,6 +102,7 @@ export const setCurrentQuestion = (roomCode, questionType) => {
         image_url: currentQuestion.image_url,
         possibleAnswers: shuffleArray(currentQuestion.wrong_answers),
         type: QUESTION_TYPES.IMAGE,
+        category: currentQuestion.get_category,
 
         rightAnswer: currentQuestion.right_answer,
       };
