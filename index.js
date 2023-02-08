@@ -25,10 +25,10 @@ import { endpoints, debugLog } from "./src/endpoints.js";
 import { CLEAN_INTERVAL_TIME } from "./src/constants.js";
 import { deleteAfkLobbies, deleteAfkMenuUsers } from "./src/cleanups.js";
 
-const app = express()
+const app = express();
 app.use(
   cors({
-    origin: "*",
+    origin: "https://vyzyvatel.vercel.app",
     methods: ["GET", "POST"],
   })
 );
@@ -36,7 +36,7 @@ app.use(
 const server = http.createServer(app);
 export const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "https://vyzyvatel.vercel.app",
     methods: ["GET", "POST"],
   },
 });
