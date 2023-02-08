@@ -1,6 +1,7 @@
 import { users, rooms } from "../globals.js";
 import { GAME_STATES, USER_STATES } from "../constants.js";
 import { deepCopy } from "../utils/universalUtils.js";
+import { io } from "../../index.js";
 
 export const updateUserLastActivity = (username) => {
   users[username] = {
