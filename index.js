@@ -25,19 +25,29 @@ import { endpoints, debugLog } from "./src/endpoints.js";
 import { CLEAN_INTERVAL_TIME } from "./src/constants.js";
 import { deleteAfkLobbies, deleteAfkMenuUsers } from "./src/cleanups.js";
 
+const TRUSTED_ORIGINS = [
+  "https://vyzyvatel.vercel.app",
+  "https://vyzyva.tel",
+  "https://www.vyzyva.tel",
+];
+
 const app = express();
 app.use(
   cors({
-    origin: "https://vyzyvatel.vercel.app",
+    origin: TRUSTED_ORIGINS,
     methods: ["GET", "POST"],
   })
 );
 
 const server = http.createServer(app);
+server.prependListener("request", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", TRUSTED_ORIGINS);
+});
 export const io = new Server(server, {
   cors: {
-    origin: "https://vyzyvatel.vercel.app",
+    origin: TRUSTED_ORIGINS,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 

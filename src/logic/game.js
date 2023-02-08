@@ -562,10 +562,10 @@ const endGame = async (roomCode) => {
     users[player] = {
       ...users[player],
       state: USER_STATES.MENU,
+      roomCode: null,
     };
     const socket = io.sockets.sockets.get(users[player].socket);
     socket.leave(roomCode);
-    users[player].roomCode = null;
     updateUserLastActivity(player);
   });
 
