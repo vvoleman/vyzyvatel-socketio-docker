@@ -60,7 +60,7 @@ export const NUMBER_OF_REGIONS = 14;
 
 export const BACKEND_URL = process.env.BACKEND_URL;
 
-const TIME_MODIFIER = 0.3;
+const TIME_MODIFIER = 1;
 
 export const GAME_TIMERS = {
   START: 6 * 1000 * TIME_MODIFIER, // 6
