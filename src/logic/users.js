@@ -1,7 +1,6 @@
 import { users, rooms } from "../globals.js";
 import { GAME_STATES, USER_STATES } from "../constants.js";
 import { deepCopy } from "../utils/universalUtils.js";
-import { io } from "../../index.js";
 
 export const updateUserLastActivity = (username) => {
   users[username] = {
@@ -31,10 +30,6 @@ export const updateUserOnLogin = (username, useremail, socket, callback) => {
       socket: socket.id,
     };
   }
-
-  const socketById = io.sockets.sockets.get(users[username].socket);
-
-  console.log(socket.id, socketById.id, socket.id === socketById.id);
 
   if (users[username].roomCode === null) {
     callback({
