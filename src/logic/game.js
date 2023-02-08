@@ -30,8 +30,6 @@ import {
 } from "../utils/gameUtils.js";
 import { updateUserLastActivity } from "./users.js";
 
-var SPEED_RUN_MODE = 1;
-
 Array.prototype.sortByDifferenceTime = function (array) {
   this.sort((obj1, obj2) => {
     if (obj1.difference < obj2.difference) {
@@ -75,7 +73,7 @@ export const startGame = async (username) => {
     playerColors: pickPlayerColors(rooms[roomCode].players),
     pickRegionHistory: [],
     startTime: new Date().getTime(),
-    endTime: new Date().getTime() + GAME_TIMERS.START * SPEED_RUN_MODE,
+    endTime: new Date().getTime() + GAME_TIMERS.START,
   };
 
   const shuffledPlayers = shuffleArray(rooms[roomCode].players);
@@ -93,7 +91,7 @@ export const startGame = async (username) => {
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitMiliseconds(GAME_TIMERS.START * SPEED_RUN_MODE);
+  await waitMiliseconds(GAME_TIMERS.START);
 
   setNextGameState(roomCode);
 };
@@ -224,11 +222,6 @@ const setNextGameState = async (roomCode) => {
 const askQuestion = (roomCode, involvedPlayers, questionType) => {
   setCurrentQuestion(roomCode, questionType);
 
-  // temporary for testing
-  if (rooms[roomCode].gameStage === GAME_STAGES.BATTLE_REGIONS) {
-    SPEED_RUN_MODE = 1;
-  }
-
   rooms[roomCode] = {
     ...rooms[roomCode],
     gameState: GAME_STATES.QUESTION_GUESS,
@@ -236,7 +229,7 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
     endTime:
       new Date().getTime() +
       GAME_TIMERS.QUESTION_READY +
-      GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE,
+      GAME_TIMERS.QUESTION_GUESS,
     currentQuestion: {
       ...rooms[roomCode].currentQuestion,
       answers: [],
@@ -252,11 +245,15 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
 
   setTimeout(() => {
     try {
-      finishQuestion(roomCode, clientRoomInfo.currentQuestion.id); // id must be value not reference (deepCopy)
+      finishQuestion(
+        roomCode,
+        clientRoomInfo.currentQuestion.id,
+        clientRoomInfo.currentQuestion.type
+      ); // id must be value not reference (deepCopy)
     } catch (e) {
       console.error(e);
     }
-  }, GAME_TIMERS.QUESTION_READY * SPEED_RUN_MODE + GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE + GAME_TIMERS.QUESTION_EVALUALTION * SPEED_RUN_MODE);
+  }, GAME_TIMERS.QUESTION_READY + GAME_TIMERS.QUESTION_GUESS + GAME_TIMERS.QUESTION_EVALUALTION);
 };
 
 export const answerQuestion = (username, answer, auto) => {
@@ -274,7 +271,7 @@ export const answerQuestion = (username, answer, auto) => {
     username: username,
     answer: answer,
     time: auto
-      ? GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE
+      ? GAME_TIMERS.QUESTION_GUESS
       : new Date().getTime() - rooms[roomCode].startTime,
   });
 
@@ -283,13 +280,18 @@ export const answerQuestion = (username, answer, auto) => {
     rooms[roomCode].currentQuestion.answers.length ===
     rooms[roomCode].currentQuestion.involvedPlayers.length
   ) {
-    finishQuestion(roomCode, rooms[roomCode].currentQuestion.id);
+    finishQuestion(
+      roomCode,
+      rooms[roomCode].currentQuestion.id,
+      rooms[roomCode].currentQuestion.type
+    );
   }
 };
 
-const finishQuestion = async (roomCode, questionId) => {
+const finishQuestion = async (roomCode, questionId, questionType) => {
   if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
   if (rooms[roomCode].currentQuestion.id !== questionId) return;
+  if (rooms[roomCode].currentQuestion.type !== questionType) return;
 
   const answers = rooms[roomCode].currentQuestion.answers;
 
@@ -302,7 +304,7 @@ const finishQuestion = async (roomCode, questionId) => {
             answers.push({
               username: player,
               answer: 0,
-              time: GAME_TIMERS.QUESTION_GUESS * SPEED_RUN_MODE,
+              time: GAME_TIMERS.QUESTION_GUESS,
             });
         }
       }
@@ -332,13 +334,12 @@ const finishQuestion = async (roomCode, questionId) => {
   }
 
   rooms[roomCode].gameState = GAME_STATES.QUESTION_RESULTS;
-  rooms[roomCode].startTime = new Date().getTime() * SPEED_RUN_MODE;
-  rooms[roomCode].endTime =
-    new Date().getTime() + GAME_TIMERS.QUESTION_RESULTS * SPEED_RUN_MODE;
+  rooms[roomCode].startTime = new Date().getTime();
+  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.QUESTION_RESULTS;
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitMiliseconds(GAME_TIMERS.QUESTION_RESULTS * SPEED_RUN_MODE);
+  await waitMiliseconds(GAME_TIMERS.QUESTION_RESULTS);
 
   setNextGameState(roomCode);
 };
@@ -352,8 +353,7 @@ const pickRegion = async (roomCode) => {
   delete rooms[roomCode].currentQuestion;
 
   rooms[roomCode].startTime = new Date().getTime();
-  rooms[roomCode].endTime =
-    new Date().getTime() + GAME_TIMERS.REGION_PICK * SPEED_RUN_MODE;
+  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.REGION_PICK;
   rooms[roomCode].currentPick = {
     id: pickId,
     username: username,
@@ -369,7 +369,7 @@ const pickRegion = async (roomCode) => {
     } catch (e) {
       console.error(e);
     }
-  }, GAME_TIMERS.REGION_PICK * SPEED_RUN_MODE);
+  }, GAME_TIMERS.REGION_PICK);
 };
 
 export const answerPickRegion = async (username, region) => {
@@ -422,7 +422,7 @@ const finishPickRegion = async (roomCode, pickId) => {
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS * SPEED_RUN_MODE);
+  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS);
 
   setNextGameState(roomCode);
 };
@@ -452,8 +452,7 @@ const attackRegion = async (roomCode) => {
   const attackId = rooms[roomCode].attackRegionQueue.length;
 
   rooms[roomCode].startTime = new Date().getTime();
-  rooms[roomCode].endTime =
-    new Date().getTime() + GAME_TIMERS.REGION_ATTACK * SPEED_RUN_MODE;
+  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.REGION_ATTACK;
   rooms[roomCode].currentAttack = {
     id: attackId,
     attacker: attacker,
@@ -469,7 +468,7 @@ const attackRegion = async (roomCode) => {
     } catch (e) {
       console.error(e);
     }
-  }, GAME_TIMERS.REGION_ATTACK * SPEED_RUN_MODE);
+  }, GAME_TIMERS.REGION_ATTACK);
 };
 
 export const answerAttackRegion = async (username, region) => {
@@ -522,7 +521,7 @@ const finishAttackRegion = async (roomCode, attackId) => {
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS * SPEED_RUN_MODE);
+  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS);
 
   setNextGameState(roomCode);
 };
@@ -540,12 +539,11 @@ const finishBattle = async (roomCode, winner) => {
 
   rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
   rooms[roomCode].startTime = new Date().getTime();
-  rooms[roomCode].endTime =
-    new Date().getTime() + GAME_TIMERS.BATTLE_FINISH * SPEED_RUN_MODE;
+  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.BATTLE_FINISH;
 
   rooms[roomCode].attackRegionHistory.push(winner);
 
-  await waitMiliseconds(GAME_TIMERS.BATTLE_FINISH * SPEED_RUN_MODE);
+  await waitMiliseconds(GAME_TIMERS.BATTLE_FINISH);
 
   setNextGameState(roomCode);
 };
@@ -554,7 +552,7 @@ const endGame = async (roomCode) => {
   rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
-  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS * SPEED_RUN_MODE);
+  await waitMiliseconds(GAME_TIMERS.REGION_RESULTS);
 
   rooms[roomCode].state = ROOM_STATES.ENDED;
   rooms[roomCode].roomCode = roomCode;

@@ -64,11 +64,11 @@ export const GAME_TIMERS = {
   START: 6 * 1000, // 6
 
   QUESTION_READY: 3 * 1000, // 3
-  QUESTION_GUESS: 10 * 1000, // 6
+  QUESTION_GUESS: 14 * 1000, // 6
   QUESTION_RESULTS: 5 * 1000, // 4
   QUESTION_EVALUALTION: 1 * 1000, // 1
 
-  REGION_PICK: 6 * 1000, // 5
+  REGION_PICK: 8 * 1000, // 5
   REGION_ATTACK: 6 * 1000, // 5
   REGION_RESULTS: 2 * 1000, // 1.5
 
@@ -76,6 +76,6 @@ export const GAME_TIMERS = {
 };
 
 export const NUMBER_OF_ROUNDS = 4;
-export const IMAGE_QUESTION_CHANCE = 0.5;
+export const IMAGE_QUESTION_CHANCE = 0.25;
 export const DEFENDER_PRICE_BONUS = 100;
 export const CLEAN_INTERVAL_TIME = 60 * 1000 * 30; // 30 minutes

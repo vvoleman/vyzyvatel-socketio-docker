@@ -1,5 +1,5 @@
 export function getTrueOrFalseByChance(chance) {
-  return Math.random() < chance ? true : false;
+  return Math.random() < chance;
 }
 
 export const shuffleArray = (refArray) => {

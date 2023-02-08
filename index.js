@@ -25,7 +25,7 @@ import { endpoints, debugLog } from "./src/endpoints.js";
 import { CLEAN_INTERVAL_TIME } from "./src/constants.js";
 import { deleteAfkLobbies, deleteAfkMenuUsers } from "./src/cleanups.js";
 
-const app = express();
+const app = express()
 app.use(
   cors({
     origin: "*",
