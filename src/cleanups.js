@@ -17,7 +17,7 @@ export function deleteAfkMenuUsers() {
     });
     debugLog(`CleanUp - Deleted ${afkUsers.length} users from menu`);
   } catch (e) {
-    console.error(e);
+    console.log(e);
   }
 }
 
@@ -47,6 +47,6 @@ export function deleteAfkLobbies() {
     });
     debugLog(`CleanUp - Deleted ${afkLobbies.length} lobbies`);
   } catch (e) {
-    console.error(e);
+    console.log(e);
   }
 }

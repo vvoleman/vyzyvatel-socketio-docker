@@ -251,7 +251,7 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
         clientRoomInfo.currentQuestion.type
       ); // id must be value not reference (deepCopy)
     } catch (e) {
-      console.error(e);
+      console.log(e);
     }
   }, GAME_TIMERS.QUESTION_READY + GAME_TIMERS.QUESTION_GUESS + GAME_TIMERS.QUESTION_EVALUALTION);
 };
@@ -367,7 +367,7 @@ const pickRegion = async (roomCode) => {
     try {
       finishPickRegion(roomCode, pickId);
     } catch (e) {
-      console.error(e);
+      console.log(e);
     }
   }, GAME_TIMERS.REGION_PICK);
 };
@@ -466,7 +466,7 @@ const attackRegion = async (roomCode) => {
     try {
       finishAttackRegion(roomCode, attackId);
     } catch (e) {
-      console.error(e);
+      console.log(e);
     }
   }, GAME_TIMERS.REGION_ATTACK);
 };
@@ -563,7 +563,7 @@ const endGame = async (roomCode) => {
       if (io.sockets.sockets.get(users[player].socket))
         io.sockets.sockets.get(users[player].socket).leave(roomCode);
     } catch (e) {
-      console.error(e);
+      console.log(e);
     }
     users[player] = {
       ...users[player],
