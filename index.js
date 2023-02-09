@@ -70,8 +70,8 @@ io.on("connection", (socket) => {
 
   socket.on("update-socket", (username, useremail, callback) => {
     try {
-      updateSocket(username, useremail, socket, callback);
       debugLog(`Socket: ${socket.id}, updated for ${username}`);
+      updateSocket(username, useremail, socket, callback);
     } catch (error) {
       console.log(error);
     }
@@ -79,8 +79,8 @@ io.on("connection", (socket) => {
 
   socket.on("create-room", (username, callback) => {
     try {
-      createRoom(username, socket, callback);
       debugLog(`${username} created room: ${users[username].roomCode}`);
+      createRoom(username, socket, callback);
     } catch (error) {
       console.log(error);
     }
@@ -88,8 +88,8 @@ io.on("connection", (socket) => {
 
   socket.on("cancel-room", (username) => {
     try {
-      cancelRoom(username, io);
       debugLog(`${username} canceled room ${users[username].roomCode}`);
+      cancelRoom(username, io);
     } catch (error) {
       console.log(error);
     }
@@ -97,8 +97,8 @@ io.on("connection", (socket) => {
 
   socket.on("join-room", (roomCode, username, callback) => {
     try {
-      joinRoom(username, roomCode, callback, socket, io);
       debugLog(`${username} joined room: ${roomCode}`);
+      joinRoom(username, roomCode, callback, socket, io);
     } catch (error) {
       console.log(error);
     }
@@ -115,8 +115,8 @@ io.on("connection", (socket) => {
 
   socket.on("update-room", (username, roomInfo) => {
     try {
-      updateRoom(username, roomInfo, io);
       debugLog(`${username} updated room ${users[username].roomCode}`);
+      updateRoom(username, roomInfo, io);
     } catch (error) {
       console.log(error);
     }
@@ -124,8 +124,8 @@ io.on("connection", (socket) => {
 
   socket.on("kick-room", (username, kicked) => {
     try {
-      kickUserFromRoom(username, kicked, io);
       debugLog(`${username} kicked ${kicked} from ${users[username].roomCode}`);
+      kickUserFromRoom(username, kicked, io);
     } catch (error) {
       console.log(error);
     }
