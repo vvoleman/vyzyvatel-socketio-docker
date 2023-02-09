@@ -68,9 +68,9 @@ io.on("connection", (socket) => {
     debugLog(`${socket.id} disconnected`);
   });
 
-  socket.on("update-socket", (username) => {
+  socket.on("update-socket", (username, callback) => {
     try {
-      updateSocket(username, socket);
+      updateSocket(username, socket, callback);
       debugLog(`Socket: ${socket.id}, updated for ${username}`);
     } catch (error) {
       console.log(error);
@@ -100,8 +100,6 @@ io.on("connection", (socket) => {
   socket.on("cancel-room", (username) => {
     try {
       debugLog(`${username} canceled room ${users[username].roomCode}`);
-      debugLog(`socketid: ${socket.id}, connected: ${socket.connected}`); // debug
-      cancelRoom(username, io);
     } catch (error) {
       console.log(error);
     }

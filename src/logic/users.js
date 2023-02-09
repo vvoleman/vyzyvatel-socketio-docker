@@ -9,17 +9,9 @@ export const updateUserLastActivity = (username) => {
   };
 };
 
-export const updateUserOnLogin = (username, useremail, socket, callback) => {
+export const updateUserOnLogin = (username, useremail) => {
   if (username in users) {
-    users[username] = {
-      ...users[username],
-      lastAct: new Date(Date.now()),
-      socket: socket.id,
-    };
-
-    if (users[username].roomCode !== null) {
-      socket.join(users[username].roomCode);
-    }
+    users[username].lastAct = new Date(Date.now());
   } else {
     users[username] = {
       username: username,
@@ -27,15 +19,31 @@ export const updateUserOnLogin = (username, useremail, socket, callback) => {
       state: USER_STATES.MENU,
       lastAct: new Date(Date.now()),
       roomCode: null,
-      socket: socket.id,
     };
   }
+};
+
+export const updateSocket = (username, socket) => {
+  if (!(username in users)) return;
+
+  users[username].socket = socket.id;
 
   if (users[username].roomCode === null) {
     callback({
       userInfo: users[username],
       roomInfo: null,
     });
+    return;
+  }
+
+  socket.join(users[username].roomCode);
+
+  if (users[username].state === USER_STATES.LOBBY) {
+    callback({
+      userInfo: users[username],
+      roomInfo: rooms[users[username].roomCode],
+    });
+    return;
   }
 
   const roomInfo = deepCopy(rooms[users[username].roomCode]);
@@ -57,14 +65,4 @@ export const updateUserOnLogin = (username, useremail, socket, callback) => {
     userInfo: users[username],
     roomInfo: roomInfo,
   });
-};
-
-export const updateSocket = (username, socket) => {
-  if (!(username in users)) return;
-
-  users[username].socket = socket.id;
-
-  if (users[username].state === USER_STATES.GAME) {
-    socket.emit("room-update", rooms[roomCode]);
-  }
 };
