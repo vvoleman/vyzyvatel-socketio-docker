@@ -63,4 +63,8 @@ export const updateSocket = (username, socket) => {
   if (!(username in users)) return;
 
   users[username].socket = socket.id;
+
+  if (users[username].state === USER_STATES.GAME) {
+    socket.emit("room-update", rooms[roomCode]);
+  }
 };
