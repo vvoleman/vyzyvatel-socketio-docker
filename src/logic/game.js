@@ -289,6 +289,7 @@ export const answerQuestion = (username, answer, auto) => {
 };
 
 const finishQuestion = async (roomCode, questionId, questionType) => {
+  if (!rooms[roomCode]) return;
   if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
   if (rooms[roomCode].currentQuestion.id !== questionId) return;
   if (rooms[roomCode].currentQuestion.type !== questionType) return;
