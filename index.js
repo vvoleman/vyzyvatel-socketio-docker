@@ -68,21 +68,10 @@ io.on("connection", (socket) => {
     debugLog(`${socket.id} disconnected`);
   });
 
-  socket.on("update-socket", (username, callback) => {
+  socket.on("update-socket", (username, useremail, callback) => {
     try {
-      updateSocket(username, socket, callback);
+      updateSocket(username, useremail, socket, callback);
       debugLog(`Socket: ${socket.id}, updated for ${username}`);
-    } catch (error) {
-      console.log(error);
-    }
-  });
-
-  socket.on("login", (username, useremail, callback) => {
-    try {
-      updateUserOnLogin(username, useremail, socket, callback);
-      debugLog(
-        `Login: ${socket.id}, Username: ${username}, Email: ${useremail}`
-      );
     } catch (error) {
       console.log(error);
     }

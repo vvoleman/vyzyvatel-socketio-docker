@@ -9,10 +9,8 @@ export const updateUserLastActivity = (username) => {
   };
 };
 
-export const updateUserOnLogin = (username, useremail) => {
-  if (username in users) {
-    users[username].lastAct = new Date(Date.now());
-  } else {
+export const updateSocket = (username, useremail, socket, callback) => {
+  if (!(username in users)) {
     users[username] = {
       username: username,
       email: useremail,
@@ -21,10 +19,6 @@ export const updateUserOnLogin = (username, useremail) => {
       roomCode: null,
     };
   }
-};
-
-export const updateSocket = (username, socket, callback) => {
-  if (!(username in users)) return;
 
   users[username].socket = socket.id;
 
