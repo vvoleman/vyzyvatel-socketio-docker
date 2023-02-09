@@ -380,9 +380,9 @@ const pickRegion = async (roomCode) => {
 };
 
 export const answerPickRegion = async (username, region) => {
-  if (!(roomCode in rooms)) return;
-
   const roomCode = users[username].roomCode;
+
+  if (!(roomCode in rooms)) return;
 
   if (rooms[roomCode].gameState !== GAME_STATES.REGION_PICK) return;
   if (rooms[roomCode].currentPick.username !== username) return;
