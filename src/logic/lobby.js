@@ -26,6 +26,8 @@ const generateCode = (len) => {
 };
 
 export const createRoom = (username, socket, callback) => {
+  if (!users[username]) return;
+
   const newRoomCode = generateCode(4);
 
   rooms[newRoomCode] = {
