@@ -261,10 +261,7 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
 };
 
 export const answerQuestion = (username, answer, auto) => {
-  if (!(roomCode in rooms)) return;
-
   const roomCode = users[username].roomCode;
-
   if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
 
   for (let i = 0; i < rooms[roomCode].currentQuestion.answers.length; i++) {
