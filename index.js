@@ -83,6 +83,7 @@ io.on("connection", (socket) => {
   socket.on("cancel-room", (username) => {
     try {
       debugLog(`${username} canceled room ${users[username].roomCode}`);
+      debugLog(`socketid: ${socket.id}, connected: ${socket.connected}`);
       cancelRoom(username, io);
     } catch (error) {
       console.error(error);
@@ -184,6 +185,10 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error(error);
     }
+  });
+
+  socket.on("disconnect", () => {
+    debugLog(`${socket.id} disconnected ${users[socket.id]}`);
   });
 });
 
