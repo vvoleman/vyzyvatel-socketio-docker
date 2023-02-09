@@ -99,6 +99,7 @@ io.on("connection", (socket) => {
 
   socket.on("cancel-room", (username) => {
     try {
+      cancelRoom(username, io);
       debugLog(`${username} canceled room ${users[username].roomCode}`);
     } catch (error) {
       console.log(error);
