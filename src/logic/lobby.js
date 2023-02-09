@@ -95,7 +95,10 @@ export const joinRoom = (username, roomCode, callback, socket, io) => {
     return;
   }
 
-  if (rooms[roomCode].players.length >= 3) {
+  if (
+    rooms[roomCode].players.length >= 3 ||
+    rooms[roomCode].players.includes(username)
+  ) {
     callback("full");
     return;
   }

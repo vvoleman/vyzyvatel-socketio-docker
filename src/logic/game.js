@@ -261,6 +261,8 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
 };
 
 export const answerQuestion = (username, answer, auto) => {
+  if (!(username in users)) return;
+
   const roomCode = users[username].roomCode;
   if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
 
@@ -380,9 +382,9 @@ const pickRegion = async (roomCode) => {
 };
 
 export const answerPickRegion = async (username, region) => {
-  const roomCode = users[username].roomCode;
+  if (!(username in users)) return;
 
-  if (!(roomCode in rooms)) return;
+  const roomCode = users[username].roomCode;
 
   if (rooms[roomCode].gameState !== GAME_STATES.REGION_PICK) return;
   if (rooms[roomCode].currentPick.username !== username) return;
@@ -487,7 +489,7 @@ const attackRegion = async (roomCode) => {
 };
 
 export const answerAttackRegion = async (username, region) => {
-  if (!(roomCode in rooms)) return;
+  if (!(username in users)) return;
 
   const roomCode = users[username].roomCode;
 
