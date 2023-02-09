@@ -13,6 +13,7 @@ export function deleteAfkMenuUsers() {
     );
 
     afkUsers.forEach((username) => {
+      io.to(users[username].socket).emit("user-update", null);
       delete users[username];
     });
     debugLog(`CleanUp - Deleted ${afkUsers.length} users from menu`);
