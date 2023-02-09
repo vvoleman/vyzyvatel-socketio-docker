@@ -14,7 +14,7 @@ import {
 } from "./src/logic/lobby.js";
 import { rooms, users, categories } from "./src/globals.js";
 import { getCategories } from "./src/getRequests.js";
-import { updateUserOnLogin } from "./src/logic/users.js";
+import { updateUserOnLogin, updateSocket } from "./src/logic/users.js";
 import {
   startGame,
   answerQuestion,
