@@ -60,6 +60,23 @@ setInterval(() => {
 }, CLEAN_INTERVAL_TIME);
 
 io.on("connection", (socket) => {
+  socket.on("connect", () => {
+    debugLog(`${socket.id} connected, user: ${users[socket.id]}`);
+  });
+
+  socket.on("disconnect", () => {
+    debugLog(`${socket.id} disconnected, user: ${users[socket.id]}`);
+  });
+
+  socket.on("update-socket", (username) => {
+    try {
+      updateSocket(username, socket);
+      debugLog(`Socket: ${socket.id}, updated for user: ${users[username]}`);
+    } catch (error) {
+      console.log(error);
+    }
+  });
+
   socket.on("login", (username, useremail, callback) => {
     try {
       updateUserOnLogin(username, useremail, socket, callback);
@@ -67,7 +84,7 @@ io.on("connection", (socket) => {
         `Login: ${socket.id}, Username: ${username}, Email: ${useremail}`
       );
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -76,17 +93,17 @@ io.on("connection", (socket) => {
       createRoom(username, socket, callback);
       debugLog(`${username} created room: ${users[username].roomCode}`);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
   socket.on("cancel-room", (username) => {
     try {
       debugLog(`${username} canceled room ${users[username].roomCode}`);
-      debugLog(`socketid: ${socket.id}, connected: ${socket.connected}`);
+      debugLog(`socketid: ${socket.id}, connected: ${socket.connected}`); // debug
       cancelRoom(username, io);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -95,7 +112,7 @@ io.on("connection", (socket) => {
       joinRoom(username, roomCode, callback, socket, io);
       debugLog(`${username} joined room: ${roomCode}`);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -104,7 +121,7 @@ io.on("connection", (socket) => {
       debugLog(`${username} left room: ${users[username].roomCode}`);
       leaveRoom(username, callback, socket, io);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -113,7 +130,7 @@ io.on("connection", (socket) => {
       updateRoom(username, roomInfo, io);
       debugLog(`${username} updated room ${users[username].roomCode}`);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -122,7 +139,7 @@ io.on("connection", (socket) => {
       kickUserFromRoom(username, kicked, io);
       debugLog(`${username} kicked ${kicked} from ${users[username].roomCode}`);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -130,7 +147,7 @@ io.on("connection", (socket) => {
     try {
       getPublicRooms(callback);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -139,7 +156,7 @@ io.on("connection", (socket) => {
       debugLog(`${username} started game ${users[username].roomCode}`);
       startGame(username);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -150,7 +167,7 @@ io.on("connection", (socket) => {
       );
       answerQuestion(username, answer, auto);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -161,7 +178,7 @@ io.on("connection", (socket) => {
       );
       answerPickRegion(username, answer);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -172,7 +189,7 @@ io.on("connection", (socket) => {
       );
       answerAttackRegion(username, answer);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   });
 
@@ -183,12 +200,8 @@ io.on("connection", (socket) => {
       );
       socket.to(users[username].roomCode).emit("receive-message", messData);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
-  });
-
-  socket.on("disconnect", () => {
-    debugLog(`${socket.id} disconnected ${users[socket.id]}`);
   });
 });
 

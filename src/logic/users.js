@@ -58,3 +58,9 @@ export const updateUserOnLogin = (username, useremail, socket, callback) => {
     roomInfo: roomInfo,
   });
 };
+
+export const updateSocket = (username, socket) => {
+  if (!(username in users)) return;
+
+  users[username].socket = socket.id;
+};

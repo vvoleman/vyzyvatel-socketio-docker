@@ -81,7 +81,7 @@ export const cancelRoom = (username, io) => {
     };
 
     io.to(users[player].socket).emit("user-update", users[player]);
-    console.log("canel-room socket: ", users[player].socket);
+    console.log("canel-room socket: ", users[player].socket); // debug
   });
 
   delete rooms[roomCode];
