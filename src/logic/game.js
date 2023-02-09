@@ -98,6 +98,8 @@ export const startGame = async (username) => {
 
 // WARNING: indentation hell
 const setNextGameState = async (roomCode) => {
+  if (!(roomCode in rooms)) return;
+
   switch (rooms[roomCode].gameState) {
     case GAME_STATES.START:
       askQuestion(roomCode, rooms[roomCode].players, QUESTION_TYPES.NUMERIC);
@@ -220,6 +222,8 @@ const setNextGameState = async (roomCode) => {
 };
 
 const askQuestion = (roomCode, involvedPlayers, questionType) => {
+  if (!(roomCode in rooms)) return;
+
   setCurrentQuestion(roomCode, questionType);
 
   rooms[roomCode] = {
@@ -257,6 +261,8 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
 };
 
 export const answerQuestion = (username, answer, auto) => {
+  if (!(roomCode in rooms)) return;
+
   const roomCode = users[username].roomCode;
 
   if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
@@ -289,7 +295,8 @@ export const answerQuestion = (username, answer, auto) => {
 };
 
 const finishQuestion = async (roomCode, questionId, questionType) => {
-  if (!rooms[roomCode]) return;
+  if (!(roomCode in rooms)) return;
+
   if (rooms[roomCode].gameState !== GAME_STATES.QUESTION_GUESS) return;
   if (rooms[roomCode].currentQuestion.id !== questionId) return;
   if (rooms[roomCode].currentQuestion.type !== questionType) return;
@@ -346,6 +353,8 @@ const finishQuestion = async (roomCode, questionId, questionType) => {
 };
 
 const pickRegion = async (roomCode) => {
+  if (!(roomCode in rooms)) return;
+
   rooms[roomCode].gameState = GAME_STATES.REGION_PICK;
 
   const username = rooms[roomCode].pickRegionQueue.shift();
@@ -374,6 +383,8 @@ const pickRegion = async (roomCode) => {
 };
 
 export const answerPickRegion = async (username, region) => {
+  if (!(roomCode in rooms)) return;
+
   const roomCode = users[username].roomCode;
 
   if (rooms[roomCode].gameState !== GAME_STATES.REGION_PICK) return;
@@ -385,6 +396,8 @@ export const answerPickRegion = async (username, region) => {
 };
 
 const finishPickRegion = async (roomCode, pickId) => {
+  if (!(roomCode in rooms)) return;
+
   if (rooms[roomCode].gameState !== GAME_STATES.REGION_PICK) return;
   if (rooms[roomCode].currentPick.id !== pickId) return;
 
@@ -429,6 +442,8 @@ const finishPickRegion = async (roomCode, pickId) => {
 };
 
 const allRegionsTaken = async (roomCode) => {
+  if (!(roomCode in rooms)) return;
+
   rooms[roomCode].gameStage = GAME_STAGES.BATTLE_REGIONS;
 
   delete rooms[roomCode].pickRegionQueue;
@@ -447,6 +462,8 @@ const allRegionsTaken = async (roomCode) => {
 };
 
 const attackRegion = async (roomCode) => {
+  if (!(roomCode in rooms)) return;
+
   rooms[roomCode].gameState = GAME_STATES.REGION_ATTACK;
 
   const attacker = rooms[roomCode].attackRegionQueue.shift();
@@ -473,6 +490,8 @@ const attackRegion = async (roomCode) => {
 };
 
 export const answerAttackRegion = async (username, region) => {
+  if (!(roomCode in rooms)) return;
+
   const roomCode = users[username].roomCode;
 
   if (rooms[roomCode].gameState !== GAME_STATES.REGION_ATTACK) return;
@@ -484,6 +503,8 @@ export const answerAttackRegion = async (username, region) => {
 };
 
 const finishAttackRegion = async (roomCode, attackId) => {
+  if (!(roomCode in rooms)) return;
+
   if (rooms[roomCode].gameState !== GAME_STATES.REGION_ATTACK) return;
   if (rooms[roomCode].currentAttack.id !== attackId) return;
 
@@ -528,6 +549,8 @@ const finishAttackRegion = async (roomCode, attackId) => {
 };
 
 const finishBattle = async (roomCode, winner) => {
+  if (!(roomCode in rooms)) return;
+
   if (winner === null) {
   } else if (winner === rooms[roomCode].currentAttack.defender) {
     rooms[roomCode].map[rooms[roomCode].currentAttack.region].price +=
@@ -550,6 +573,8 @@ const finishBattle = async (roomCode, winner) => {
 };
 
 const endGame = async (roomCode) => {
+  if (!(roomCode in rooms)) return;
+
   rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 

@@ -26,7 +26,7 @@ const generateCode = (len) => {
 };
 
 export const createRoom = (username, socket, callback) => {
-  if (!users[username]) return;
+  if (!(username in users)) return;
 
   const newRoomCode = generateCode(4);
 
@@ -57,6 +57,8 @@ export const createRoom = (username, socket, callback) => {
 };
 
 export const cancelRoom = (username, io) => {
+  if (!(username in users)) return;
+
   if (!(users[username].roomCode in rooms)) return;
 
   const roomCode = users[username].roomCode;
@@ -85,6 +87,8 @@ export const cancelRoom = (username, io) => {
 };
 
 export const joinRoom = (username, roomCode, callback, socket, io) => {
+  if (!(username in users)) return;
+
   if (!(roomCode in rooms)) {
     callback("404");
     return;
@@ -124,6 +128,8 @@ export const joinRoom = (username, roomCode, callback, socket, io) => {
 };
 
 export const leaveRoom = (username, callback, socket, io) => {
+  if (!(username in users)) return;
+
   const roomCode = users[username].roomCode;
 
   socket.leave(roomCode);
@@ -148,6 +154,8 @@ export const leaveRoom = (username, callback, socket, io) => {
 };
 
 export const updateRoom = (username, roomInfo, io) => {
+  if (!(username in users)) return;
+
   const roomCode = users[username].roomCode;
 
   if (!(roomCode in rooms)) return;
@@ -161,6 +169,8 @@ export const updateRoom = (username, roomInfo, io) => {
 };
 
 export const kickUserFromRoom = (username, kicked, io) => {
+  if (!(username in users)) return;
+  if (!(kicked in users)) return;
   const roomCode = users[username].roomCode;
 
   if (!(roomCode in rooms)) return;
