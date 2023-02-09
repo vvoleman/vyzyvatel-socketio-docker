@@ -23,7 +23,7 @@ export const updateUserOnLogin = (username, useremail) => {
   }
 };
 
-export const updateSocket = (username, socket) => {
+export const updateSocket = (username, socket, callback) => {
   if (!(username in users)) return;
 
   users[username].socket = socket.id;
