@@ -71,8 +71,7 @@ io.on("connection", (socket) => {
   socket.on("update-socket", (username) => {
     try {
       updateSocket(username, socket);
-      debugLog(`Socket: ${socket.id}, updated for user:`);
-      debugLog(users[username]);
+      debugLog(`Socket: ${socket.id}, updated for ${username}`);
     } catch (error) {
       console.log(error);
     }
