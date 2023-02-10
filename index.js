@@ -79,8 +79,8 @@ io.on("connection", (socket) => {
 
   socket.on("create-room", (username, callback) => {
     try {
-      debugLog(`${username} created room: ${users[username].roomCode}`);
       createRoom(username, socket, callback);
+      debugLog(`${username} created room: ${users[username].roomCode}`);
     } catch (error) {
       console.log(error);
     }
