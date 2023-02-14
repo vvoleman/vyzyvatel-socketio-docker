@@ -61,11 +61,11 @@ setInterval(() => {
 
 io.on("connection", (socket) => {
   socket.on("connect", () => {
-    debugLog(`${socket.id} connected`);
+    debugLog(`Socket: ${socket.id} connected`);
   });
 
   socket.on("disconnect", () => {
-    debugLog(`${socket.id} disconnected`);
+    debugLog(`Socket: ${socket.id} disconnected, user: ${users[socket.id]}`);
   });
 
   socket.on("update-socket", (username, useremail, callback) => {
