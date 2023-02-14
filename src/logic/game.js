@@ -64,6 +64,8 @@ export const startGame = async (username) => {
   delete rooms[roomCode].blacklist;
   delete rooms[roomCode].public;
 
+  const currTime = new Date().getTime();
+
   rooms[roomCode] = {
     ...rooms[roomCode],
     state: ROOM_STATES.GAME,
@@ -72,8 +74,9 @@ export const startGame = async (username) => {
     map: defaultMapInfo(),
     playerColors: pickPlayerColors(rooms[roomCode].players),
     pickRegionHistory: [],
-    startTime: new Date().getTime(),
-    endTime: new Date().getTime() + GAME_TIMERS.START,
+    sendTime: currTime,
+    startTime: currTime,
+    endTime: currTime + GAME_TIMERS.START,
   };
 
   const shuffledPlayers = shuffleArray(rooms[roomCode].players);
@@ -226,14 +229,14 @@ const askQuestion = (roomCode, involvedPlayers, questionType) => {
 
   setCurrentQuestion(roomCode, questionType);
 
+  const currTime = new Date().getTime();
+
   rooms[roomCode] = {
     ...rooms[roomCode],
     gameState: GAME_STATES.QUESTION_GUESS,
-    startTime: new Date().getTime() + GAME_TIMERS.QUESTION_READY,
-    endTime:
-      new Date().getTime() +
-      GAME_TIMERS.QUESTION_READY +
-      GAME_TIMERS.QUESTION_GUESS,
+    sendTime: currTime,
+    startTime: currTime + GAME_TIMERS.QUESTION_READY,
+    endTime: currTime + GAME_TIMERS.QUESTION_READY + GAME_TIMERS.QUESTION_GUESS,
     currentQuestion: {
       ...rooms[roomCode].currentQuestion,
       answers: [],
@@ -340,9 +343,12 @@ const finishQuestion = async (roomCode, questionId, questionType) => {
       break;
   }
 
+  const currTime = new Date().getTime();
+
   rooms[roomCode].gameState = GAME_STATES.QUESTION_RESULTS;
-  rooms[roomCode].startTime = new Date().getTime();
-  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.QUESTION_RESULTS;
+  rooms[roomCode].sendTime = currTime;
+  rooms[roomCode].startTime = currTime;
+  rooms[roomCode].endTime = currTime + GAME_TIMERS.QUESTION_RESULTS;
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
@@ -361,8 +367,11 @@ const pickRegion = async (roomCode) => {
 
   delete rooms[roomCode].currentQuestion;
 
-  rooms[roomCode].startTime = new Date().getTime();
-  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.REGION_PICK;
+  const currTime = new Date().getTime();
+
+  rooms[roomCode].sendTime = currTime;
+  rooms[roomCode].startTime = currTime;
+  rooms[roomCode].endTime = currTime + GAME_TIMERS.REGION_PICK;
   rooms[roomCode].currentPick = {
     id: pickId,
     username: username,
@@ -468,8 +477,11 @@ const attackRegion = async (roomCode) => {
   const attacker = rooms[roomCode].attackRegionQueue.shift();
   const attackId = rooms[roomCode].attackRegionQueue.length;
 
-  rooms[roomCode].startTime = new Date().getTime();
-  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.REGION_ATTACK;
+  const currTime = new Date().getTime();
+
+  rooms[roomCode].sendTime = currTime;
+  rooms[roomCode].startTime = currTime;
+  rooms[roomCode].endTime = currTime + GAME_TIMERS.REGION_ATTACK;
   rooms[roomCode].currentAttack = {
     id: attackId,
     attacker: attacker,
@@ -560,9 +572,12 @@ const finishBattle = async (roomCode, winner) => {
   delete rooms[roomCode].currentAttack;
   delete rooms[roomCode].currentQuestion;
 
+  const currTime = new Date().getTime();
+
   rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
-  rooms[roomCode].startTime = new Date().getTime();
-  rooms[roomCode].endTime = new Date().getTime() + GAME_TIMERS.BATTLE_FINISH;
+  rooms[roomCode].sendTime = currTime;
+  rooms[roomCode].startTime = currTime;
+  rooms[roomCode].endTime = currTime + GAME_TIMERS.BATTLE_FINISH;
 
   rooms[roomCode].attackRegionHistory.push(winner);
 
