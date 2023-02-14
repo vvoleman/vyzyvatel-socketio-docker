@@ -74,7 +74,7 @@ export const GAME_TIMERS = {
   REGION_ATTACK: 6 * 1000 * TIME_MODIFIER, // 6
   REGION_RESULTS: 2 * 1000, // 2
 
-  BATTLE_FINISH: 1.5 * 1000, // 1.5
+  BATTLE_FINISH: 2 * 1000, // 1.5
 };
 
 export const NUMBER_OF_ROUNDS = 4;

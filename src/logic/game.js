@@ -441,6 +441,9 @@ const finishPickRegion = async (roomCode, pickId) => {
   rooms[roomCode].pickRegionHistory.push(rooms[roomCode].currentPick.username);
 
   delete rooms[roomCode].currentPick;
+  delete rooms[roomCode].sendTime;
+  delete rooms[roomCode].startTime;
+  delete rooms[roomCode].endTime;
 
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
@@ -552,6 +555,10 @@ const finishAttackRegion = async (roomCode, attackId) => {
     }
   }
 
+  delete rooms[roomCode].sendTime;
+  delete rooms[roomCode].startTime;
+  delete rooms[roomCode].endTime;
+
   io.to(roomCode).emit("room-update", rooms[roomCode]);
 
   await waitMiliseconds(GAME_TIMERS.REGION_RESULTS);
@@ -572,12 +579,10 @@ const finishBattle = async (roomCode, winner) => {
   delete rooms[roomCode].currentAttack;
   delete rooms[roomCode].currentQuestion;
 
-  const currTime = new Date().getTime();
-
   rooms[roomCode].gameState = GAME_STATES.REGION_RESULTS;
-  rooms[roomCode].sendTime = currTime;
-  rooms[roomCode].startTime = currTime;
-  rooms[roomCode].endTime = currTime + GAME_TIMERS.BATTLE_FINISH;
+  delete rooms[roomCode].sendTime;
+  delete rooms[roomCode].startTime;
+  delete rooms[roomCode].endTime;
 
   rooms[roomCode].attackRegionHistory.push(winner);
 
