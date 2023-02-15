@@ -10,13 +10,14 @@ import {
   GAME_STAGES,
   DEFENDER_PRICE_BONUS,
 } from "../constants.js";
-import { users, rooms, questionSets } from "../globals.js";
+import { users, rooms, questionSets, publicRoomCodes } from "../globals.js";
 import { getQuestionSet } from "../getRequests.js";
 import {
   shuffleArray,
   deepCopy,
   waitMiliseconds,
   getTrueOrFalseByChance,
+  arrayRemove,
 } from "../utils/universalUtils.js";
 import { defaultMapInfo } from "../defaults.js";
 import { io } from "../../index.js";
@@ -57,6 +58,10 @@ export const startGame = async (username) => {
   if (rooms[roomCode].owner !== username) return;
   if (rooms[roomCode].state !== ROOM_STATES.LOBBY) return;
   if (rooms[roomCode].players.length !== 3) return;
+
+  if (publicRoomCodes.includes(roomCode)) {
+    arrayRemove(publicRoomCodes, roomCode);
+  }
 
   await getQuestionSet(roomCode);
 

@@ -1,4 +1,10 @@
-import { rooms, users, categories, questionSets } from "./globals.js";
+import {
+  rooms,
+  users,
+  categories,
+  questionSets,
+  publicRoomCodes,
+} from "./globals.js";
 import { getCategories } from "./getRequests.js";
 
 const apiKey = process.env.API_KEY;
@@ -53,6 +59,15 @@ export function endpoints(app) {
       return;
     }
     res.status(404).send({ error: "Room not found" });
+  });
+
+  app.get("/api/publicroomcodes", function (req, res) {
+    if (!checkKey(req, res)) return;
+
+    res.send({
+      count: publicRoomCodes.length,
+      publicRooms: publicRoomCodes,
+    });
   });
 
   app.get("/api/update/categories", async function (req, res) {

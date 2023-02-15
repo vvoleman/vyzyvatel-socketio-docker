@@ -1,10 +1,4 @@
-import {
-  categories,
-  rooms,
-  users,
-  publicRoomCodes,
-  publicRooms,
-} from "../globals.js";
+import { categories, rooms, users, publicRoomCodes } from "../globals.js";
 import { ROOM_STATES, USER_STATES } from "../constants.js";
 import { updateUserLastActivity } from "./users.js";
 import { arrayRemove } from "../utils/universalUtils.js";
@@ -82,6 +76,10 @@ export const cancelRoom = (username, io) => {
 
     io.to(users[player].socket).emit("user-update", users[player]);
   });
+
+  if (publicRoomCodes.includes(roomCode)) {
+    arrayRemove(publicRoomCodes, roomCode);
+  }
 
   delete rooms[roomCode];
 };
@@ -206,23 +204,17 @@ export const kickUserFromRoom = (username, kicked, io) => {
 };
 
 const updatePublicRoomCodes = (roomCode) => {
-  let change = false;
-
   if (publicRoomCodes.includes(roomCode)) {
     if (rooms[roomCode].public === false) {
       arrayRemove(publicRoomCodes, roomCode);
-      change = true;
     }
   } else if (rooms[roomCode].public === true) {
     publicRoomCodes.push(roomCode);
-    change = true;
   }
-
-  if (!change) return;
 };
 
-const updatePublicRooms = () => {
-  publicRooms.length = 0;
+export const getPublicRooms = (callback) => {
+  const publicRooms = [];
 
   publicRoomCodes.forEach((roomCode) => {
     if (roomCode in rooms) {
@@ -234,10 +226,6 @@ const updatePublicRooms = () => {
       });
     }
   });
-};
-
-export const getPublicRooms = (callback) => {
-  updatePublicRooms();
 
   callback(publicRooms);
 };
