@@ -65,7 +65,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    debugLog(`Socket: ${socket.id} disconnected, user: ${users[socket.id]}`);
+    debugLog(`Socket: ${socket.id} disconnected`);
   });
 
   socket.on("update-socket", (username, useremail, callback) => {
