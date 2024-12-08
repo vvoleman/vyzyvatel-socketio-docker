@@ -78,6 +78,6 @@ export const GAME_TIMERS = {
 };
 
 export const NUMBER_OF_ROUNDS = 4;
-export const IMAGE_QUESTION_CHANCE = 0.15;
+export const IMAGE_QUESTION_CHANCE = 0;
 export const DEFENDER_PRICE_BONUS = 100;
 export const CLEAN_INTERVAL_TIME = 60 * 1000 * 30; // 30 minutes

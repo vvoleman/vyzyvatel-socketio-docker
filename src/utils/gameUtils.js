@@ -82,7 +82,7 @@ export const setCurrentQuestion = (roomCode, questionType) => {
     case QUESTION_TYPES.NUMERIC:
       currentQuestion = questionSets[roomCode].numericQuestions.pop();
 
-      if (currentQuestion === null) {
+      if (currentQuestion === undefined) {
         return;
       }
 
