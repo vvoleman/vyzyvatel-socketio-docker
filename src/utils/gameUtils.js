@@ -67,6 +67,11 @@ export const setCurrentQuestion = (roomCode, questionType) => {
     case QUESTION_TYPES.PICK:
       currentQuestion = questionSets[roomCode].pickQuestions.pop();
 
+      if (currentQuestion === undefined) {
+        console.log("No more questions");
+        return;
+      }
+
       currentQuestion.wrong_answers.push(currentQuestion.right_answer);
       currentQuestion = {
         id: currentQuestion.id,
