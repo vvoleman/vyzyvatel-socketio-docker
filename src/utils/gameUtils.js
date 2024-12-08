@@ -82,6 +82,10 @@ export const setCurrentQuestion = (roomCode, questionType) => {
     case QUESTION_TYPES.NUMERIC:
       currentQuestion = questionSets[roomCode].numericQuestions.pop();
 
+      if (currentQuestion === null) {
+        return;
+      }
+
       currentQuestion = {
         id: currentQuestion.id,
         question: currentQuestion.question,
